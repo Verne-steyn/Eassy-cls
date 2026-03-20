@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EASSy CLS — Cable Station Routines</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Supabase JS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+/* ══════════════════════════════════
+   CONFIGURATION BANNER
+══════════════════════════════════ */
+#config-banner{
+  position:fixed;inset:0;z-index:99999;
+  background:#1a1916;color:#f5f4f0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Plus Jakarta Sans',sans-serif;
+}
+.config-box{
+  background:#ffffff;color:#1a1916;border-radius:12px;
+  padding:40px;max-width:520px;width:90%;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+.config-box h2{font-size:20px;font-weight:700;margin-bottom:6px;color:#c0392b;}
+.config-box p{font-size:13px;color:#5a5850;margin-bottom:20px;line-height:1.6;}
+.config-box ol{font-size:13px;color:#5a5850;padding-left:18px;margin-bottom:20px;line-height:2;}
+.config-box ol li strong{color:#1a1916;}
+.config-input{width:100%;padding:10px 12px;border:1px solid #dddad2;border-radius:6px;font-size:13px;margin-bottom:10px;font-family:inherit;outline:none;}
+.config-input:focus{border-color:#2478b0;box-shadow:0 0 0 3px rgba(36,120,176,.1);}
+.config-save{width:100%;padding:12px;background:#1a5c8a;color:white;border:none;border-radius:6px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+.config-save:hover{background:#2478b0;}
+.config-note{font-size:11px;color:#9a9890;margin-top:12px;text-align:center;}
+
+/* ══════════════════════════════════
+   ROOT VARIABLES
+══════════════════════════════════ */
+:root{
+  --bg:#f5f4f0;--bg2:#eeede8;--bg3:#e8e6df;--white:#ffffff;
+  --border:#dddad2;--border2:#c8c4ba;
+  --text:#1a1916;--text2:#5a5850;--text3:#9a9890;
+  --accent:#1a5c8a;--accent-light:#e8f2fa;--accent2:#2478b0;
+  --ok:#1a7a4a;--ok-bg:#e8f5ee;
+  --fail:#c0392b;--fail-bg:#fdecea;
+  --warn:#b85c00;--warn-bg:#fdf3e8;
+  --skip:#7a7870;--skip-bg:#f0efeb;
+  --supervisor:#6b3fa0;--supervisor-bg:#f3eeff;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.04);
+  --shadow-lg:0 4px 16px rgba(0,0,0,.1),0 1px 4px rgba(0,0,0,.06);
+  --r:10px;--rs:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Plus Jakarta Sans',sans-serif;min-height:100vh;font-size:14px;line-height:1.5;}
+
+/* ══════════════════════════════════
+   AUTH SCREENS
+══════════════════════════════════ */
+.auth-screen{
+  min-height:100vh;
+  background:linear-gradient(135deg,#f5f4f0 0%,#e8eef5 100%);
+  display:flex;flex-direction:column;
+}
+.auth-header{padding:20px 40px;display:flex;align-items:center;gap:12px;}
+.lm{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-family:'Instrument Serif',serif;font-size:20px;}
+.logo-text{font-size:15px;font-weight:700;letter-spacing:-0.02em;}
+.logo-sub{font-size:11px;color:var(--text3);}
+.auth-body{flex:1;display:grid;grid-template-columns:1fr 460px;gap:0;max-width:1100px;margin:0 auto;padding:20px 40px 60px;width:100%;align-items:center;}
+.auth-left h1{font-family:'Instrument Serif',serif;font-size:42px;font-weight:400;line-height:1.15;letter-spacing:-0.02em;margin-bottom:12px;}
+.auth-left h1 em{color:var(--accent);font-style:italic;}
+.auth-left p{color:var(--text2);font-size:15px;max-width:380px;margin-bottom:28px;}
+.station-grid-login{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-width:420px;}
+.smc{background:var(--white);border:1px solid var(--border);border-radius:var(--rs);padding:10px 14px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow);}
+.smc .flag-e{font-size:18px;line-height:1;}
+.smc .stn-n{font-size:11px;font-weight:600;color:var(--text);line-height:1.2;}
+.smc .stn-c{font-size:10px;color:var(--text3);}
+.stn-dot{margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--border2);}
+.stn-dot.online{background:var(--ok);box-shadow:0 0 0 2px var(--ok-bg);}
+.stn-dot.recent{background:var(--warn);box-shadow:0 0 0 2px var(--warn-bg);}
+
+.auth-panel{background:var(--white);border:1px solid var(--border);border-radius:16px;padding:36px;box-shadow:var(--shadow-lg);}
+.auth-panel h2{font-size:20px;font-weight:700;letter-spacing:-0.02em;margin-bottom:4px;}
+.auth-panel>p{font-size:13px;color:var(--text3);margin-bottom:22px;}
+.auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:22px;}
+.auth-tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .2s,border-color .2s;}
+.auth-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.form-group{margin-bottom:14px;}
+.form-label{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em;}
+.form-ctrl{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--rs);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;color:var(--text);background:var(--white);outline:none;transition:border-color .2s,box-shadow .2s;appearance:none;}
+.form-ctrl:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(36,120,176,.12);}
+select.form-ctrl{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239a9890' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
+.btn-auth{width:100%;padding:11px;background:var(--accent);color:white;border:none;border-radius:var(--rs);font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;transition:background .2s,box-shadow .2s;}
+.btn-auth:hover{background:var(--accent2);box-shadow:0 4px 12px rgba(26,92,138,.3);}
+.btn-auth:disabled{background:#9a9890;cursor:not-allowed;}
+.auth-link{text-align:center;margin-top:14px;font-size:12px;color:var(--text3);}
+.auth-link a{color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none;}
+.auth-link a:hover{text-decoration:underline;}
+.auth-error{background:var(--fail-bg);border:1px solid #f0c0bb;border-radius:var(--rs);padding:10px 14px;font-size:13px;color:var(--fail);margin-bottom:14px;display:none;}
+.auth-error.show{display:block;}
+.auth-success{background:var(--ok-bg);border:1px solid #b8deca;border-radius:var(--rs);padding:10px 14px;font-size:13px;color:var(--ok);margin-bottom:14px;display:none;}
+.auth-success.show{display:block;}
+.password-wrap{position:relative;}
+.password-wrap .form-ctrl{padding-right:40px;}
+.pw-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:4px;}
+
+/* Reset password screen */
+#reset-screen{display:none;}
+#verify-screen{display:none;}
+
+/* ══════════════════════════════════
+   APP SHELL
+══════════════════════════════════ */
+#app-screen{display:none;}
+.app-header{height:60px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:14px;position:sticky;top:0;z-index:200;}
+.app-lm{width:30px;height:30px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-family:'Instrument Serif',serif;font-size:17px;}
+.app-lt{font-size:14px;font-weight:700;letter-spacing:-0.02em;}
+.h-sep{flex:1;}
+.stn-badge{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:5px 14px;}
+.stn-badge .flag{font-size:16px;}
+.stn-badge .sn{font-size:12px;font-weight:600;}
+.stn-badge .sc{font-size:10px;color:var(--text3);}
+.stn-badge.sup{background:var(--supervisor-bg);border-color:var(--supervisor);}
+.user-pill{display:flex;align-items:center;gap:8px;}
+.user-av{width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:700;}
+.user-av.sup{background:var(--supervisor);}
+.user-nm{font-size:13px;font-weight:600;}
+.btn-out{padding:6px 14px;border:1px solid var(--border2);border-radius:6px;background:none;font-size:12px;color:var(--text3);cursor:pointer;font-family:inherit;transition:all .2s;}
+.btn-out:hover{background:var(--fail-bg);color:var(--fail);border-color:var(--fail);}
+
+/* Alert bar */
+.alert-bar{background:var(--fail-bg);border-bottom:1px solid #f0c0bb;padding:8px 24px;display:none;align-items:center;gap:10px;font-size:12px;color:var(--fail);}
+.alert-bar.show{display:flex;}
+.alert-chip{background:white;border:1px solid #f0c0bb;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600;}
+
+/* Nav */
+.app-nav{background:var(--white);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:0;overflow-x:auto;position:sticky;top:60px;z-index:100;}
+.app-nav::-webkit-scrollbar{height:0;}
+.nav-tab{padding:13px 16px;font-size:12px;font-weight:600;color:var(--text3);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;transition:color .2s,border-color .2s;}
+.nav-tab:hover{color:var(--text2);}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.nav-tab.sup-tab.active{color:var(--supervisor);border-bottom-color:var(--supervisor);}
+
+/* Main */
+.app-main{max-width:1360px;margin:0 auto;padding:24px;}
+.page{display:none;}
+.page.active{display:block;animation:slideUp .25s ease;}
+@keyframes slideUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ══════════════════════════════════
+   LOADING OVERLAY
+══════════════════════════════════ */
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:500;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+.loading-overlay.show{display:flex;}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--text3);}
+
+/* ══════════════════════════════════
+   SHARED UI COMPONENTS
+══════════════════════════════════ */
+.page-title{font-family:'Instrument Serif',serif;font-size:26px;font-weight:400;letter-spacing:-0.02em;}
+.section-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.text-muted{color:var(--text3);}
+.text-ok{color:var(--ok);}
+.text-fail{color:var(--fail);}
+.text-warn{color:var(--warn);}
+.mono{font-family:'JetBrains Mono',monospace;}
+.flex-between{display:flex;align-items:center;justify-content:space-between;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+@media(max-width:800px){.two-col{grid-template-columns:1fr;}}
+
+/* KPIs */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:22px;}
+.kpi{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);}
+.kpi-label{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+.kpi-value{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:500;line-height:1;}
+.kpi-value.green{color:var(--ok);}
+.kpi-value.blue{color:var(--accent);}
+.kpi-value.orange{color:var(--warn);}
+.kpi-value.red{color:var(--fail);}
+.kpi-value.purple{color:var(--supervisor);}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:5px;}
+.kpi-bar{height:3px;background:var(--bg3);border-radius:2px;margin-top:8px;overflow:hidden;}
+.kpi-bar-fill{height:100%;border-radius:2px;transition:width .6s ease;}
+.kpi-bar-fill.green{background:var(--ok);}
+.kpi-bar-fill.blue{background:var(--accent);}
+
+/* Panels */
+.panel{background:var(--white);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px;}
+.panel-header{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.panel-title{font-size:13px;font-weight:700;}
+.badge{font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;background:var(--bg2);color:var(--text3);border:1px solid var(--border);}
+.badge.blue{background:var(--accent-light);color:var(--accent2);border-color:#b8d4ec;}
+.badge.green{background:var(--ok-bg);color:var(--ok);border-color:#b8deca;}
+.badge.red{background:var(--fail-bg);color:var(--fail);border-color:#f0c0bb;}
+.badge.purple{background:var(--supervisor-bg);color:var(--supervisor);border-color:#c8a8e8;}
+table.dt{width:100%;border-collapse:collapse;}
+table.dt th{padding:9px 16px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;text-align:left;background:var(--bg);border-bottom:1px solid var(--border);}
+table.dt td{padding:10px 16px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--bg3);}
+table.dt tr:last-child td{border-bottom:none;}
+table.dt tr:hover td{background:#fafaf8;}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+.pill.ok{background:var(--ok-bg);color:var(--ok);}
+.pill.fail{background:var(--fail-bg);color:var(--fail);}
+.pill.skip{background:var(--skip-bg);color:var(--skip);}
+.pill.partial{background:var(--warn-bg);color:var(--warn);}
+
+/* Station cards */
+.stations-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:12px;margin-bottom:22px;}
+.station-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shadow);transition:box-shadow .2s,border-color .2s;}
+.station-card:hover{box-shadow:var(--shadow-lg);border-color:var(--border2);}
+.sc-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.sc-flag{font-size:24px;line-height:1;}
+.sc-info{flex:1;}
+.sc-name{font-size:13px;font-weight:700;}
+.sc-loc{font-size:11px;color:var(--text3);}
+.sc-status{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;}
+.sc-status.done{background:var(--ok-bg);color:var(--ok);}
+.sc-status.partial{background:var(--warn-bg);color:var(--warn);}
+.sc-status.pending{background:var(--fail-bg);color:var(--fail);}
+.sc-status.empty{background:var(--bg2);color:var(--text3);}
+.sc-spark{height:36px;margin-bottom:6px;}
+.sc-spark svg{width:100%;height:100%;overflow:visible;}
+.sc-footer{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);}
+
+/* Line chart */
+.lc-panel{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:20px;box-shadow:var(--shadow);margin-bottom:18px;}
+.lc-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;}
+.lc-wrap{height:170px;}
+.lc-wrap svg{width:100%;height:100%;overflow:visible;}
+
+/* Capture form */
+.capture-layout{display:grid;grid-template-columns:255px 1fr;gap:18px;align-items:start;}
+@media(max-width:900px){.capture-layout{grid-template-columns:1fr;}}
+.capture-sidebar{background:var(--white);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);position:sticky;top:130px;overflow:hidden;}
+.cs-sec{padding:13px 15px;border-bottom:1px solid var(--border);}
+.cs-sec:last-child{border-bottom:none;}
+.cs-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;}
+.cs-meta{font-size:12px;color:var(--text2);}
+.prog-ring{display:flex;align-items:center;gap:10px;}
+.prog-circle{width:44px;height:44px;flex-shrink:0;}
+.prog-nums{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:500;}
+.prog-lbl{font-size:11px;color:var(--text3);}
+.btn{width:100%;padding:9px 14px;border-radius:var(--rs);font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;border:1px solid;text-align:center;}
+.btn-primary{background:var(--accent);color:white;border-color:var(--accent);margin-bottom:6px;}
+.btn-primary:hover{background:var(--accent2);box-shadow:0 3px 10px rgba(26,92,138,.25);}
+.btn-success{background:none;color:var(--ok);border-color:var(--ok);}
+.btn-success:hover{background:var(--ok-bg);}
+.btn-pdf{background:none;color:var(--text2);border-color:var(--border2);margin-top:6px;}
+.btn-pdf:hover{background:var(--bg2);}
+.form-scroll{overflow-y:auto;max-height:calc(100vh - 150px);}
+.equip-group{background:var(--white);border:1px solid var(--border);border-radius:var(--r);margin-bottom:8px;box-shadow:var(--shadow);overflow:hidden;}
+.eg-hdr{padding:12px 15px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;background:var(--bg);border-bottom:1px solid var(--border);transition:background .15s;}
+.eg-hdr:hover{background:var(--bg2);}
+.eg-title{font-size:13px;font-weight:700;flex:1;}
+.eg-count{font-size:11px;font-weight:600;color:var(--text3);background:var(--bg2);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-family:'JetBrains Mono',monospace;}
+.eg-count.done{background:var(--ok-bg);color:var(--ok);border-color:#b8deca;}
+.chev{color:var(--text3);font-size:10px;transition:transform .2s;}
+.equip-group.collapsed .eg-body{display:none;}
+.eg-body{padding:8px;display:flex;flex-direction:column;gap:4px;}
+.check-item{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:start;padding:10px 13px;border:1px solid var(--border);border-radius:var(--rs);background:var(--bg);transition:border-color .15s,background .15s;}
+.check-item:hover{border-color:var(--border2);background:var(--white);}
+.check-item.ans{background:var(--white);border-color:var(--border2);}
+.check-item.ans-ok{border-left:3px solid var(--ok);}
+.check-item.ans-fail{border-left:3px solid var(--fail);}
+.ci-lbl{font-size:12px;font-weight:500;line-height:1.3;}
+.ci-desc{font-size:10px;color:var(--text3);margin-top:2px;}
+.ci-type{font-size:10px;color:var(--text3);margin-top:3px;font-style:italic;}
+.ci-inp{width:150px;padding:6px 9px;border:1px solid var(--border);border-radius:5px;font-size:12px;color:var(--text);font-family:inherit;background:var(--white);outline:none;transition:border-color .15s;}
+.ci-inp:focus{border-color:var(--accent2);box-shadow:0 0 0 2px rgba(36,120,176,.1);}
+.ci-btns{display:flex;gap:3px;}
+.cib{width:32px;height:32px;border-radius:5px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;background:var(--white);transition:all .15s;}
+.cib-ok:hover,.cib-ok.sel{background:var(--ok-bg);border-color:#5cb88a;}
+.cib-fail:hover,.cib-fail.sel{background:var(--fail-bg);border-color:#e09090;}
+.cib-skip:hover,.cib-skip.sel{background:var(--bg2);border-color:var(--border2);}
+.ci-cmt{grid-column:1/-1;width:100%;padding:5px 9px;border:1px solid var(--border);border-radius:5px;font-size:11px;color:var(--text2);font-family:inherit;background:var(--white);resize:none;outline:none;display:none;}
+.ci-cmt.show{display:block;}
+.ci-cmt:focus{border-color:var(--accent2);}
+
+/* Supervisor heatmap */
+.sup-bar{background:var(--supervisor-bg);border:1px solid #c8a8e8;border-radius:var(--r);padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:12px;}
+.sup-bar .sup-icon{font-size:22px;}
+.sup-bar .sup-title{font-size:14px;font-weight:700;color:var(--supervisor);}
+.sup-bar .sup-sub{font-size:12px;color:#8060a0;}
+.heatmap{display:grid;grid-template-columns:115px repeat(6,1fr);gap:3px;font-size:11px;}
+.hm-lbl{color:var(--text2);display:flex;align-items:center;font-weight:500;font-size:11px;}
+.hm-cell{height:34px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;font-family:'JetBrains Mono',monospace;cursor:default;}
+.hm-100{background:#c8f0da;color:#0a5a30;}
+.hm-80{background:#e0f5e8;color:#1a7a4a;}
+.hm-60{background:#fff3e0;color:#8a4a00;}
+.hm-40{background:#fde8e8;color:#c0392b;}
+.hm-0{background:#f0efeb;color:#9a9890;}
+.hm-hdr{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;justify-content:center;text-align:center;}
+.overdue-row{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:var(--rs);background:var(--fail-bg);border:1px solid #f0c0bb;margin-bottom:6px;}
+.overdue-row .ov-name{font-size:13px;font-weight:600;color:var(--fail);}
+.overdue-row .ov-types{font-size:11px;color:var(--text3);}
+
+/* PDF */
+#pdf-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;}
+#pdf-overlay.show{display:flex;}
+#pdf-modal{background:white;border-radius:12px;width:700px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.pdf-mhdr{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.pdf-mhdr h3{font-size:17px;font-weight:700;}
+.btn-x{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);line-height:1;}
+.pdf-mbody{padding:22px;}
+#pdf-content{font-family:'Plus Jakarta Sans',sans-serif;color:#1a1916;font-size:12px;line-height:1.5;}
+.pdf-logo-bar{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:3px solid #1a5c8a;margin-bottom:16px;}
+.pdf-logo-box{width:34px;height:34px;background:#1a5c8a;border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-size:17px;font-family:Georgia,serif;}
+.pdf-logo-text{font-size:15px;font-weight:700;}
+.pdf-logo-sub{font-size:10px;color:#5a5850;}
+.pdf-title{font-size:17px;font-weight:700;color:#1a5c8a;margin-bottom:4px;}
+.pdf-meta-row{display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;}
+.pdf-meta-item label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9a9890;display:block;}
+.pdf-meta-item span{font-size:13px;font-weight:600;}
+.pdf-sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#5a5850;background:#f5f4f0;padding:5px 9px;border-radius:4px;margin:10px 0 5px;}
+.pdf-row{display:grid;grid-template-columns:1fr 60px;gap:6px;padding:4px 0;border-bottom:1px solid #f0efeb;}
+.pdf-row:last-child{border-bottom:none;}
+.pdf-row-lbl{font-size:11px;}
+.pdf-row-val{font-size:11px;font-weight:700;text-align:right;}
+.pdf-row-val.ok{color:#1a7a4a;}
+.pdf-row-val.fail{color:#c0392b;}
+.pdf-row-val.skip{color:#9a9890;}
+.pdf-cmt{grid-column:1/-1;font-size:10px;color:#5a5850;padding:2px 6px;background:#fdf3e8;border-left:2px solid #b85c00;border-radius:2px;margin-top:2px;}
+.pdf-summary{background:#e8f2fa;border:1px solid #b8d4ec;border-radius:6px;padding:10px;margin-top:14px;display:flex;gap:16px;}
+.pdf-sum-item label{font-size:9px;font-weight:700;text-transform:uppercase;color:#5a7890;display:block;}
+.pdf-sum-item span{font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.pdf-sum-item span.ok{color:#1a7a4a;}
+.pdf-sum-item span.fail{color:#c0392b;}
+.pdf-sigs{margin-top:20px;padding-top:14px;border-top:1px solid #dddad2;display:flex;gap:28px;}
+.pdf-sig label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#9a9890;display:block;margin-bottom:18px;}
+.pdf-sig-line{border-bottom:1px solid #c8c4ba;height:22px;}
+.pdf-sig .pdf-sig-name{font-size:10px;color:#9a9890;margin-top:3px;}
+.pdf-footer{margin-top:12px;font-size:9px;color:#9a9890;text-align:center;}
+.pdf-act{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+.btn-print{padding:9px 18px;background:#1a5c8a;color:white;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn-print:hover{background:#2478b0;}
+.btn-cancel{padding:9px 18px;background:none;border:1px solid var(--border2);border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--text2);}
+
+/* History filters */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.filter-row .form-ctrl{width:auto;flex:1;min-width:120px;}
+.btn-sm{padding:8px 14px;width:auto;}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:white;padding:12px 18px;border-radius:var(--rs);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);z-index:9999;transform:translateY(60px);opacity:0;transition:all .3s ease;pointer-events:none;}
+.toast.show{transform:translateY(0);opacity:1;}
+
+@media print{
+  body>*:not(#pdf-overlay){display:none!important;}
+  #pdf-overlay{position:static!important;background:none!important;display:block!important;}
+  #pdf-modal{box-shadow:none;border-radius:0;max-height:none;width:100%;}
+  .pdf-mhdr,.pdf-act{display:none!important;}
+  .pdf-mbody{padding:0;}
+}
+@media(max-width:600px){
+  .auth-body{grid-template-columns:1fr;padding:20px;}
+  .auth-left{display:none;}
+  .kpi-row{grid-template-columns:1fr 1fr;}
+  .app-main{padding:14px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ CONFIG BANNER ══════════════════ -->
+<div id="config-banner">
+  <div class="config-box">
+    <div style="margin-bottom:14px"><img src="data:image/png;base64,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" style="height:36px;object-fit:contain" alt="EASSy"></div>
+    <h2>⚙️ Setup Required</h2>
+    <p>Enter your Supabase project details to connect the app to your live database. You only need to do this once.</p>
+    <ol>
+      <li>Go to <strong>supabase.com</strong> → your project</li>
+      <li>Click <strong>Settings → API</strong> in the left sidebar</li>
+      <li>Copy <strong>Project URL</strong> and paste below</li>
+      <li>Copy <strong>anon / public key</strong> and paste below</li>
+    </ol>
+    <input class="config-input" id="cfg-url" placeholder="Project URL  e.g. https://abcxyz.supabase.co">
+    <input class="config-input" id="cfg-key" placeholder="Anon / public key  e.g. eyJhbGciOi...">
+    <button class="config-save" onclick="saveConfig()">Save &amp; Connect →</button>
+    <div class="config-note">These values are stored in your browser. They are safe to share with the app — they are not your secret admin key.</div>
+  </div>
+</div>
+
+<!-- ══════════════════ LOGIN SCREEN ══════════════════ -->
+<div class="auth-screen" id="login-screen" style="display:none">
+  <div class="auth-header">
+    <div style="height:32px;display:flex;align-items:center"><img src="data:image/png;base64,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" style="height:32px;object-fit:contain" alt="EASSy"></div>
+    <div><div class="logo-text">CLS Routines</div><div class="logo-sub">Cable Landing Station Operations Platform</div></div>
+  </div>
+  <div class="auth-body">
+    <div class="auth-left">
+      <h1>EASSy<br><em>Cable Station</em><br>Routines</h1>
+      <p>Real-time maintenance routine capture and supervisor oversight across all cable landing stations.</p>
+      <div class="station-grid-login" id="stn-status-grid"></div>
+    </div>
+    <div class="auth-panel">
+      <h2>Welcome Back</h2>
+      <p>Sign in with your registered email and password.</p>
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tab-signin" onclick="switchAuthTab('signin')">Sign In</div>
+        <div class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Register</div>
+      </div>
+
+      <!-- SIGN IN -->
+      <div id="form-signin">
+        <div class="auth-error" id="signin-error"></div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-ctrl" id="si-email" placeholder="your@email.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="password-wrap">
+            <input type="password" class="form-ctrl" id="si-password" placeholder="Your password" autocomplete="current-password">
+            <button class="pw-toggle" onclick="togglePw('si-password',this)">👁</button>
+          </div>
+        </div>
+        <button class="btn-auth" onclick="doSignIn()">Sign In →</button>
+        <div class="auth-link"><a onclick="showReset()">Forgot password?</a></div>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="form-register" style="display:none">
+        <div class="auth-error" id="reg-error"></div>
+        <div class="auth-success" id="reg-success"></div>
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-ctrl" id="reg-name" placeholder="Your full name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-ctrl" id="reg-email" placeholder="your@email.com" autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Station</label>
+          <select class="form-ctrl" id="reg-station">
+            <option value="">— Select your station —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Role</label>
+          <select class="form-ctrl" id="reg-role">
+            <option value="technician">Technician</option>
+            <option value="senior_technician">Senior Technician</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="engineer">Engineer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="password-wrap">
+            <input type="password" class="form-ctrl" id="reg-password" placeholder="Min 8 characters">
+            <button class="pw-toggle" onclick="togglePw('reg-password',this)">👁</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm Password</label>
+          <input type="password" class="form-ctrl" id="reg-confirm" placeholder="Repeat password">
+        </div>
+        <button class="btn-auth" onclick="doRegister()">Create Account →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ RESET PASSWORD ══════════════════ -->
+<div class="auth-screen" id="reset-screen" style="display:none">
+  <div class="auth-header">
+    <div class="lm">V</div>
+    <div><div class="logo-text">VS CLS Routines</div></div>
+  </div>
+  <div style="max-width:420px;margin:60px auto;padding:20px">
+    <div class="auth-panel">
+      <h2>Reset Password</h2>
+      <p>Enter your email and we'll send you a reset link.</p>
+      <div class="auth-error" id="reset-error"></div>
+      <div class="auth-success" id="reset-success"></div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-ctrl" id="reset-email" placeholder="your@email.com">
+      </div>
+      <button class="btn-auth" onclick="doReset()">Send Reset Email →</button>
+      <div class="auth-link" style="margin-top:12px"><a onclick="showLogin()">← Back to sign in</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ EMAIL VERIFY NOTICE ══════════════════ -->
+<div class="auth-screen" id="verify-screen" style="display:none">
+  <div style="max-width:420px;margin:80px auto;padding:20px">
+    <div class="auth-panel" style="text-align:center">
+      <div style="font-size:48px;margin-bottom:16px">📧</div>
+      <h2 style="margin-bottom:10px">Check your email</h2>
+      <p style="margin-bottom:20px">We've sent a confirmation link to <strong id="verify-email-display"></strong>.<br>Click the link to activate your account, then sign in.</p>
+      <button class="btn-auth" onclick="showLogin()">Back to Sign In</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════ APP ══════════════════ -->
+<div id="app-screen" style="display:none">
+  <header class="app-header">
+    <div style="display:flex;align-items:center;gap:8px">
+      <img src="data:image/png;base64,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" style="height:24px;object-fit:contain" alt="EASSy">
+    </div>
+    <div class="h-sep"></div>
+    <div class="stn-badge" id="hdr-stn-badge">
+      <span class="flag" id="hdr-flag">🌍</span>
+      <div><div class="sn" id="hdr-stn-name">—</div><div class="sc" id="hdr-stn-country">—</div></div>
+    </div>
+    <div class="user-pill">
+      <div class="user-av" id="hdr-av">T</div>
+      <div class="user-nm" id="hdr-nm">—</div>
+    </div>
+    <button class="btn-out" onclick="doSignOut()">Sign Out</button>
+  </header>
+
+  <div class="alert-bar" id="overdue-bar">
+    <span>⚠</span><strong>Overdue Routines:</strong>
+    <div class="alert-items" id="overdue-items"></div>
+    <span style="margin-left:auto;font-size:11px">as of <span id="overdue-time"></span></span>
+  </div>
+
+  <nav class="app-nav">
+    <button class="nav-tab active" onclick="showPage('dashboard')">📊 Dashboard</button>
+    <button class="nav-tab tech-tab" onclick="showPage('daily-fac')">🏢 Daily Facility</button>
+    <button class="nav-tab tech-tab" onclick="showPage('daily-eq')">⚡ Daily Equipment</button>
+    <button class="nav-tab tech-tab" onclick="showPage('weekly')">📅 Weekly</button>
+    <button class="nav-tab tech-tab" onclick="showPage('monthly')">📆 Monthly</button>
+    <button class="nav-tab tech-tab" onclick="showPage('pfe')">🔬 PFE Readings</button>
+    <button class="nav-tab tech-tab" onclick="showPage('sixmonth')">🗓 6-Month</button>
+    <button class="nav-tab sup-tab" style="display:none" onclick="showPage('supervisor')">👁 Supervisor</button>
+    <button class="nav-tab" onclick="showPage('history')">📂 History</button>
+  </nav>
+
+  <div class="app-main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="flex-between" style="margin-bottom:18px">
+        <div>
+          <div style="font-family:'Instrument Serif',serif;font-size:26px;letter-spacing:-0.02em">Operations Dashboard</div>
+          <div class="text-muted" style="font-size:12px;margin-top:2px" id="dash-sub">—</div>
+        </div>
+        <div style="font-size:12px;color:var(--text2);background:var(--white);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-weight:500" id="date-badge">—</div>
+      </div>
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-label">Today's Score</div><div class="kpi-value green" id="kpi-score">—</div><div class="kpi-sub">My station</div><div class="kpi-bar"><div class="kpi-bar-fill green" id="kpi-score-bar" style="width:0%"></div></div></div>
+        <div class="kpi"><div class="kpi-label">Total Submissions</div><div class="kpi-value blue" id="kpi-total">0</div><div class="kpi-sub">All stations</div></div>
+        <div class="kpi"><div class="kpi-label">Issues Today</div><div class="kpi-value red" id="kpi-issues">0</div><div class="kpi-sub">✖ all stations</div></div>
+        <div class="kpi"><div class="kpi-label">Stations Reporting</div><div class="kpi-value orange" id="kpi-stations">0</div><div class="kpi-sub">of 9 today</div></div>
+        <div class="kpi"><div class="kpi-label">Overdue</div><div class="kpi-value red" id="kpi-overdue">0</div><div class="kpi-sub">My station</div></div>
+      </div>
+      <div class="lc-panel">
+        <div class="lc-title">Compliance Trend — Last 12 Months (All Stations)</div>
+        <div class="lc-wrap"><svg id="main-chart"></svg></div>
+      </div>
+      <div class="section-label">All Cable Stations — Today's Status</div>
+      <div class="stations-grid" id="all-stn-grid"></div>
+      <div class="two-col">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">Recent Submissions</div><span class="badge blue">All Stations</span></div>
+          <div style="overflow-x:auto"><table class="dt">
+            <thead><tr><th>Station</th><th>Date</th><th>Type</th><th>Tech</th><th>Score</th></tr></thead>
+            <tbody id="recent-tbody"></tbody>
+          </table></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">My Routine Status</div><span class="badge" id="my-stn-badge">—</span></div>
+          <div style="padding:10px;display:flex;flex-direction:column;gap:4px" id="my-status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CAPTURE PAGES (daily-fac, daily-eq, weekly, monthly, pfe, sixmonth) -->
+    <div class="page" id="page-daily-fac"><div class="flex-between" style="margin-bottom:18px"><div><div class="page-title">Daily Facility Routines</div><div class="text-muted" style="font-size:12px;margin-top:2px">Diesel tanks · Gensets · ATS · DC Power · Power Rooms</div></div><span class="badge blue">Daily</span></div>
+      <div class="capture-layout"><div class="capture-sidebar" id="sb-daily-fac"></div><div class="form-scroll" id="form-df"></div></div></div>
+    <div class="page" id="page-daily-eq"><div class="flex-between" style="margin-bottom:18px"><div><div class="page-title">Daily Equipment Routines</div><div class="text-muted" style="font-size:12px;margin-top:2px">PFE · SLTE · DCN · Land Route · NMS</div></div><span class="badge blue">Daily</span></div>
+      <div class="capture-layout"><div class="capture-sidebar" id="sb-daily-eq"></div><div class="form-scroll" id="form-de"></div></div></div>
+    <div class="page" id="page-weekly"><div class="flex-between" style="margin-bottom:18px"><div><div class="page-title">Weekly Facility Routines</div></div><span class="badge blue">Weekly</span></div>
+      <div class="capture-layout"><div class="capture-sidebar" id="sb-weekly"></div><div class="form-scroll" id="form-wk"></div></div></div>
+    <div class="page" id="page-monthly"><div class="flex-between" style="margin-bottom:18px"><div><div class="page-title">Monthly Routines</div></div><span class="badge blue">Monthly</span></div>
+      <div class="capture-layout"><div class="capture-sidebar" id="sb-monthly"></div><div class="form-scroll" id="form-mo"></div></div></div>
+    <div class="page" id="page-pfe"><div class="flex-between" style="margin-bottom:18px"><div><div class="page-title">PFE40DFN Monthly Readings</div></div><span class="badge blue">Monthly</span></div>
+      <div class="capture-layout"><div class="capture-sidebar" id="sb-pfe"></div><div class="form-scroll" id="form-pfe"></div></div></div>
+    <div class="page" id="page-sixmonth"><div class="flex-between" style="margin-bottom:18px"><div><div class="page-title">6-Month Routines</div></div><span class="badge blue">6-Monthly</span></div>
+      <div class="capture-layout"><div class="capture-sidebar" id="sb-sixmonth"></div><div class="form-scroll" id="form-sm"></div></div></div>
+
+    <!-- SUPERVISOR -->
+    <div class="page" id="page-supervisor">
+      <div class="sup-bar"><div class="sup-icon">👁</div><div><div class="sup-title">Supervisor View — All Stations</div><div class="sup-sub">Network-wide compliance · Read-only</div></div></div>
+      <div class="kpi-row">
+        <div class="kpi"><div class="kpi-label">Network Score Today</div><div class="kpi-value green" id="sup-score">—</div><div class="kpi-sub">Avg reporting stations</div><div class="kpi-bar"><div class="kpi-bar-fill green" id="sup-score-bar" style="width:0%"></div></div></div>
+        <div class="kpi"><div class="kpi-label">Stations Reporting</div><div class="kpi-value blue" id="sup-rep">0/9</div><div class="kpi-sub">Today</div></div>
+        <div class="kpi"><div class="kpi-label">Total Issues</div><div class="kpi-value red" id="sup-issues">0</div><div class="kpi-sub">✖ all stations today</div></div>
+        <div class="kpi"><div class="kpi-label">Overdue Network</div><div class="kpi-value orange" id="sup-overdue">0</div><div class="kpi-sub">Daily not submitted</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Compliance Heatmap — All Stations × Routine Types</div><span class="badge purple">Supervisor</span></div>
+        <div style="padding:14px;overflow-x:auto"><div class="heatmap" id="sup-heatmap"></div></div>
+      </div>
+      <div class="section-label" style="margin-top:4px">Overdue / Missing Routines</div>
+      <div id="sup-overdue-list" style="margin-bottom:18px"></div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Station Records</div>
+          <select class="form-ctrl" id="sup-stn-filter" onchange="renderSupTable()" style="width:auto;font-size:12px;padding:4px 28px 4px 10px"></select>
+        </div>
+        <div style="overflow-x:auto"><table class="dt">
+          <thead><tr><th>Station</th><th>Date</th><th>Type</th><th>Technician</th><th>✔</th><th>✖</th><th>Score</th><th>Status</th><th>PDF</th></tr></thead>
+          <tbody id="sup-tbody"></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page" id="page-history">
+      <div class="page-title" style="margin-bottom:16px">Submission History</div>
+      <div class="filter-row">
+        <select class="form-ctrl" id="hist-stn" onchange="renderHistory()"><option value="">All Stations</option></select>
+        <select class="form-ctrl" id="hist-type" onchange="renderHistory()">
+          <option value="">All Types</option>
+          <option value="daily-fac">Daily Facility</option>
+          <option value="daily-eq">Daily Equipment</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+          <option value="pfe">PFE Readings</option>
+          <option value="sixmonth">6 Month</option>
+        </select>
+        <input type="text" class="form-ctrl" id="hist-search" placeholder="Search technician…" oninput="renderHistory()">
+        <button class="btn btn-primary btn-sm" onclick="exportCSV()">⬇ Export CSV</button>
+      </div>
+      <div class="panel"><div style="overflow-x:auto"><table class="dt">
+        <thead><tr><th>Station</th><th>Date</th><th>Type</th><th>Technician</th><th>✔</th><th>✖</th><th>Score</th><th>Status</th><th></th></tr></thead>
+        <tbody id="hist-tbody"></tbody>
+      </table></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- PDF MODAL -->
+<div id="pdf-overlay">
+  <div id="pdf-modal">
+    <div class="pdf-mhdr"><h3>📄 Routine Report</h3><button class="btn-x" onclick="closePDF()">✕</button></div>
+    <div class="pdf-mbody"><div id="pdf-content"></div></div>
+    <div class="pdf-act">
+      <button class="btn-cancel" onclick="closePDF()">Cancel</button>
+      <button class="btn-print" onclick="window.print()">🖨 Print / Save as PDF</button>
+    </div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loader"><div class="spinner"></div><div class="loading-text" id="loader-text">Loading…</div></div>
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════════════════ -->
+<script>
+// ─────────────────────────────────────────────────
+//  SUPABASE CONFIG
+// ─────────────────────────────────────────────────
+let SB = null;
+
+function initSupabase(url, key) {
+  SB = supabase.createClient(url, key);
+  return SB;
+}
+
+function saveConfig() {
+  const url = document.getElementById('cfg-url').value.trim();
+  const key = document.getElementById('cfg-key').value.trim();
+  if (!url || !key) { alert('Please enter both the URL and the key.'); return; }
+  if (!url.startsWith('https://')) { alert('URL must start with https://'); return; }
+  localStorage.setItem('cls_sb_url', url);
+  localStorage.setItem('cls_sb_key', key);
+  initSupabase(url, key);
+  document.getElementById('config-banner').style.display = 'none';
+  startApp();
+}
+
+function checkConfig() {
+  const url = localStorage.getItem('cls_sb_url');
+  const key = localStorage.getItem('cls_sb_key');
+  if (url && key) {
+    initSupabase(url, key);
+    document.getElementById('config-banner').style.display = 'none';
+    return true;
+  }
+  return false;
+}
+
+// ─────────────────────────────────────────────────
+//  STATIONS
+// ─────────────────────────────────────────────────
+const STATIONS = [
+  {id:'MTZ',name:'Mtunzini',country:'South Africa',flag:'🇿🇦'},
+  {id:'MAP',name:'Maputo',country:'Mozambique',flag:'🇲🇿'},
+  {id:'DAR',name:'Dar es Salaam',country:'Tanzania',flag:'🇹🇿'},
+  {id:'MOM',name:'Mombasa',country:'Kenya',flag:'🇰🇪'},
+  {id:'MGD',name:'Mogadishu',country:'Somalia',flag:'🇸🇴'},
+  {id:'DJI',name:'Djibouti',country:'Djibouti',flag:'🇩🇯'},
+  {id:'PSD',name:'Port Sudan',country:'Sudan',flag:'🇸🇩'},
+  {id:'MOR',name:'Moroni',country:'Comoros',flag:'🇰🇲'},
+  {id:'TOL',name:'Toliary',country:'Madagascar',flag:'🇲🇬'},
+];
+
+const LABELS = {'daily-fac':'Daily Facility','daily-eq':'Daily Equipment','weekly':'Weekly','monthly':'Monthly','pfe':'PFE Readings','sixmonth':'6 Month'};
+
+// ─────────────────────────────────────────────────
+//  SESSION
+// ─────────────────────────────────────────────────
+let SESSION = null; // {user, profile: {name, station_id, role}}
+
+const isSup = () => SESSION?.profile?.role === 'supervisor';
+const myStation = () => STATIONS.find(s => s.id === SESSION?.profile?.station_id) || STATIONS[0];
+
+// ─────────────────────────────────────────────────
+//  AUTH
+// ─────────────────────────────────────────────────
+function switchAuthTab(tab) {
+  document.getElementById('form-signin').style.display = tab === 'signin' ? '' : 'none';
+  document.getElementById('form-register').style.display = tab === 'register' ? '' : 'none';
+  document.getElementById('tab-signin').className = 'auth-tab' + (tab === 'signin' ? ' active' : '');
+  document.getElementById('tab-register').className = 'auth-tab' + (tab === 'register' ? ' active' : '');
+}
+
+function togglePw(id, btn) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+
+async function doSignIn() {
+  const email = document.getElementById('si-email').value.trim();
+  const pw = document.getElementById('si-password').value;
+  const errEl = document.getElementById('signin-error');
+  errEl.className = 'auth-error';
+  if (!email || !pw) { showErr(errEl, 'Please enter email and password.'); return; }
+  showLoader('Signing in…');
+  try {
+    const { data, error } = await SB.auth.signInWithPassword({ email, password: pw });
+    if (error) { hideLoader(); showErr(errEl, error.message); return; }
+    await loadProfile(data.user);
+  } catch(e) { hideLoader(); showErr(errEl, 'Connection error. Check your Supabase URL.'); }
+}
+
+async function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const station = document.getElementById('reg-station').value;
+  const role = document.getElementById('reg-role').value;
+  const pw = document.getElementById('reg-password').value;
+  const pw2 = document.getElementById('reg-confirm').value;
+  const errEl = document.getElementById('reg-error');
+  const sucEl = document.getElementById('reg-success');
+  errEl.className = 'auth-error'; sucEl.className = 'auth-success';
+  if (!name || !email || !station || !pw) { showErr(errEl, 'Please fill in all fields.'); return; }
+  if (pw.length < 8) { showErr(errEl, 'Password must be at least 8 characters.'); return; }
+  if (pw !== pw2) { showErr(errEl, 'Passwords do not match.'); return; }
+  showLoader('Creating account…');
+  try {
+    const { data, error } = await SB.auth.signUp({
+      email, password: pw,
+      options: { data: { name, station_id: station, role } }
+    });
+    hideLoader();
+    if (error) { showErr(errEl, error.message); return; }
+    // Insert profile
+    if (data.user) {
+      await SB.from('profiles').upsert({ id: data.user.id, name, station_id: station, role, email });
+    }
+    document.getElementById('verify-email-display').textContent = email;
+    showScreen('verify-screen');
+  } catch(e) { hideLoader(); showErr(errEl, 'Registration failed. Try again.'); }
+}
+
+async function doReset() {
+  const email = document.getElementById('reset-email').value.trim();
+  const errEl = document.getElementById('reset-error');
+  const sucEl = document.getElementById('reset-success');
+  errEl.className = 'auth-error'; sucEl.className = 'auth-success';
+  if (!email) { showErr(errEl, 'Please enter your email.'); return; }
+  showLoader('Sending reset email…');
+  const { error } = await SB.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.href
+  });
+  hideLoader();
+  if (error) { showErr(errEl, error.message); return; }
+  sucEl.textContent = 'Reset email sent! Check your inbox.';
+  sucEl.className = 'auth-success show';
+}
+
+async function doSignOut() {
+  await SB.auth.signOut();
+  SESSION = null;
+  Object.keys(formState).forEach(k => delete formState[k]);
+  showScreen('login-screen');
+  buildStationStatusGrid();
+}
+
+function showReset() { showScreen('reset-screen'); }
+function showLogin() { showScreen('login-screen'); }
+
+function showErr(el, msg) { el.textContent = msg; el.className = 'auth-error show'; }
+
+async function loadProfile(user) {
+  let { data: profile } = await SB.from('profiles').select('*').eq('id', user.id).single();
+  // Fallback to user metadata if profile row not yet inserted
+  if (!profile) {
+    profile = {
+      id: user.id,
+      name: user.user_metadata?.name || user.email.split('@')[0],
+      station_id: user.user_metadata?.station_id || 'MTZ',
+      role: user.user_metadata?.role || 'technician',
+      email: user.email
+    };
+    await SB.from('profiles').upsert(profile);
+  }
+  SESSION = { user, profile };
+  hideLoader();
+  enterApp();
+}
+
+// ─────────────────────────────────────────────────
+//  APP ENTRY
+// ─────────────────────────────────────────────────
+function enterApp() {
+  const stn = myStation();
+  const sup = isSup();
+
+  document.getElementById('hdr-flag').textContent = stn.flag;
+  document.getElementById('hdr-stn-name').textContent = sup ? 'Supervisor' : stn.name + ' (' + stn.id + ')';
+  document.getElementById('hdr-stn-country').textContent = sup ? 'Read-Only · All Stations' : stn.country;
+  const badge = document.getElementById('hdr-stn-badge');
+  if (sup) badge.classList.add('sup'); else badge.classList.remove('sup');
+  document.getElementById('hdr-av').textContent = (SESSION.profile.name || 'T').charAt(0).toUpperCase();
+  document.getElementById('hdr-av').className = 'user-av' + (sup ? ' sup' : '');
+  document.getElementById('hdr-nm').textContent = SESSION.profile.name;
+
+  // Nav visibility
+  document.querySelectorAll('.tech-tab').forEach(el => el.style.display = sup ? 'none' : '');
+  document.querySelectorAll('.sup-tab').forEach(el => el.style.display = sup ? '' : 'none');
+
+  showScreen('app-screen');
+  buildSidebars();
+  showPage(sup ? 'supervisor' : 'dashboard');
+  updateDashboard();
+  updateOverdueBar();
+
+  // Refresh every 5 min
+  setInterval(() => { if (SESSION) { updateDashboard(); updateOverdueBar(); }}, 300000);
+}
+
+// ─────────────────────────────────────────────────
+//  FORM DEFINITIONS
+// ─────────────────────────────────────────────────
+const FORMS = {
+  'daily-fac':{name:'Daily Facility',container:'form-df',sbId:'sb-daily-fac',dateInput:'df-date',ringId:'df-ring',numsId:'df-prog',groups:[
+    {id:'df-0',title:'⛽ Diesel Tank 1',items:[{id:'df-0-0',label:'Fuel Level',desc:'Level in tank',type:'text',ph:'Full / Half / Quarter'},{id:'df-0-1',label:'Leaks',type:'bool'},{id:'df-0-2',label:'Area Clean & Free of Debris',type:'bool'}]},
+    {id:'df-1',title:'⛽ Diesel Tank 2',items:[{id:'df-1-0',label:'Fuel Level',type:'text',ph:'Full / Half / Quarter'},{id:'df-1-1',label:'Leaks',type:'bool'},{id:'df-1-2',label:'Area Clean & Free of Debris',type:'bool'}]},
+    {id:'df-2',title:'⚙️ Genset 1',items:[{id:'df-2-0',label:'Hours Run (Hrs)',type:'number',ph:'Enter value'},{id:'df-2-1',label:'Starter Battery Voltage (Vdc)',type:'number',ph:'e.g. 14.3'},{id:'df-2-2',label:'Operational',type:'bool'},{id:'df-2-3',label:'Oil Level',type:'bool'},{id:'df-2-4',label:'Day Tank Fuel Level',type:'text',ph:'Full / Half / Quarter / NA'},{id:'df-2-5',label:'Coolant Level',type:'bool'},{id:'df-2-6',label:'Alarm',type:'bool'},{id:'df-2-7',label:'Leaks & Loose Components',type:'text',ph:'Nil / list items'}]},
+    {id:'df-3',title:'⚙️ Genset 2',items:[{id:'df-3-0',label:'Hours Run (Hrs)',type:'number',ph:'Enter value'},{id:'df-3-1',label:'Starter Battery Voltage (Vdc)',type:'number',ph:'e.g. 14.2'},{id:'df-3-2',label:'Operational',type:'bool'},{id:'df-3-3',label:'Oil Level',type:'bool'},{id:'df-3-4',label:'Day Tank Fuel Level',type:'text',ph:'Full / Half / Quarter'},{id:'df-3-5',label:'Coolant Level',type:'text',ph:'Full / Half / Quarter'},{id:'df-3-6',label:'Alarm',type:'bool'},{id:'df-3-7',label:'Leaks & Loose Components',type:'text',ph:'Nil / list items'}]},
+    {id:'df-4',title:'🔄 ATS',items:[{id:'df-4-0',label:'ATS 1 Operational',type:'bool'},{id:'df-4-1',label:'ATS 2 Operational',type:'bool'}]},
+    {id:'df-5',title:'⚡ DC Power A',items:[{id:'df-5-0',label:'Alarm',type:'bool'},{id:'df-5-1',label:'Current (A)',type:'number',ph:'Enter value'},{id:'df-5-2',label:'BDCBB Current',type:'text',ph:'Yes / No / NA'},{id:'df-5-3',label:'Rectifier – Visual Inspection',type:'bool'},{id:'df-5-4',label:'Battery (V)',type:'number',ph:'Enter value'},{id:'df-5-5',label:'Battery Float Voltage (V)',type:'number',ph:'Enter value'}]},
+    {id:'df-6',title:'⚡ DC Power B',items:[{id:'df-6-0',label:'Alarm',type:'bool'},{id:'df-6-1',label:'Current (A)',type:'number',ph:'Enter value'},{id:'df-6-2',label:'BDCBB Current (A)',type:'number',ph:'Enter value'},{id:'df-6-3',label:'Rectifier – Visual Inspection',type:'bool'},{id:'df-6-4',label:'Battery (V)',type:'number',ph:'Enter value'},{id:'df-6-5',label:'Battery Float Voltage (V)',type:'number',ph:'Enter value'}]},
+    {id:'df-7',title:'🏢 LV Power Room',items:[{id:'df-7-0',label:'Operational',type:'bool'},{id:'df-7-1',label:'Cooling',type:'text',ph:'Yes / No / NA'},{id:'df-7-2',label:'Humidity (%)',type:'number',ph:'Enter value'},{id:'df-7-3',label:'Condensate Drain',type:'bool'},{id:'df-7-4',label:'Air Diffuser/Grill – Clean',type:'bool'}]},
+    {id:'df-8',title:'🏢 HV Power Room',items:[{id:'df-8-0',label:'Operational',type:'bool'},{id:'df-8-1',label:'Cooling',type:'bool'},{id:'df-8-2',label:'Humidity (%)',type:'number',ph:'Enter value'},{id:'df-8-3',label:'Condensate Drain',type:'bool'}]},
+  ]},
+  'daily-eq':{name:'Daily Equipment',container:'form-de',sbId:'sb-daily-eq',dateInput:'de-date',ringId:'de-ring',numsId:'de-prog',groups:[
+    {id:'de-0',title:'⚡ PFE',items:[{id:'de-0-0',label:'Voltage (V)',type:'number',ph:'Record value'},{id:'de-0-1',label:'Current (mA)',type:'number',ph:'Record value'},{id:'de-0-2',label:'Polarity',type:'text',ph:'Pos / Neg'},{id:'de-0-3',label:'Earth in Use',type:'text',ph:'System / Station'},{id:'de-0-4',label:'Battery Voltage (V)',type:'number',ph:'Record value'},{id:'de-0-5',label:'Alarms',type:'text',ph:'Note active alarms or NIL'}]},
+    {id:'de-1',title:'📡 SLTE',items:[{id:'de-1-0',label:'Alarms',type:'text',ph:'Note active alarms or NIL'}]},
+    {id:'de-2',title:'🌐 DCN',items:[{id:'de-2-0',label:'Operational',type:'bool'}]},
+    {id:'de-3',title:'🛤️ Land Route',items:[{id:'de-3-0',label:'Check for Civils',desc:'Risk to cable?',type:'bool'}]},
+    {id:'de-4',title:'🏗️ BMH',items:[{id:'de-4-0',label:'Check for Civils',desc:'Risk to cable?',type:'bool'}]},
+    {id:'de-5',title:'📧 Station Email',items:[{id:'de-5-0',label:'Monitor Inbox',desc:'Follow assigned actions',type:'bool'}]},
+    {id:'de-6',title:'🖥️ NMS',items:[{id:'de-6-0',label:'Server Access – Connected?',type:'bool'},{id:'de-6-1',label:'Alarms',type:'text',ph:'Note active alarms or NIL'}]},
+  ]},
+  'weekly':{name:'Weekly',container:'form-wk',sbId:'sb-weekly',dateInput:'wk-date',ringId:'wk-ring',numsId:'wk-prog',groups:[
+    {id:'wk-0',title:'⚙️ Genset 1',items:[{id:'wk-0-0',label:'Batteries Float Voltage (Vdc)',type:'number',ph:'Enter value'},{id:'wk-0-1',label:'Pre-Heating System Operational',type:'bool'},{id:'wk-0-2',label:'Fuel Tank Level – Dip Check',type:'text',ph:'Enter level'}]},
+    {id:'wk-1',title:'⚙️ Genset 2',items:[{id:'wk-1-0',label:'Batteries Float Voltage (Vdc)',type:'number',ph:'Enter value'},{id:'wk-1-1',label:'Pre-Heating System Operational',type:'bool'},{id:'wk-1-2',label:'Fuel Tank Level – Dip Check',type:'text',ph:'Enter level'}]},
+    {id:'wk-2',title:'🏢 Facility',items:[{id:'wk-2-0',label:'Door Control Backup Batteries (Vdc)',type:'number',ph:'Enter value'},{id:'wk-2-1',label:'Security Alarm Backup Batteries (Vdc)',type:'number',ph:'Enter value'},{id:'wk-2-2',label:'VESDA Backup Batteries (Vdc)',type:'number',ph:'Enter value'},{id:'wk-2-3',label:'Emergency Lighting Checks',type:'bool'},{id:'wk-2-4',label:'Water Guttering & Drains Clear',type:'bool'}]},
+    {id:'wk-3',title:'🏗️ Building',items:[{id:'wk-3-0',label:'System Earth Resistance (Ω)',type:'number',ph:'Enter value'},{id:'wk-3-1',label:'Station Earth Resistance (Ω)',type:'number',ph:'Enter value'}]},
+    {id:'wk-4',title:'⚡ Equipment Earth',items:[{id:'wk-4-0',label:'System Earth Resistance (Ω)',type:'number',ph:'Enter value'},{id:'wk-4-1',label:'Station Earth Resistance (Ω)',type:'number',ph:'Enter value'}]},
+    {id:'wk-5',title:'🛤️ Land Route',items:[{id:'wk-5-0',label:'Visual Inspection – Route',type:'bool'},{id:'wk-5-1',label:'Visual Inspection – Beach Joint',type:'bool'},{id:'wk-5-2',label:'Visual Inspection – Land Joints',type:'bool'}]},
+  ]},
+  'monthly':{name:'Monthly',container:'form-mo',sbId:'sb-monthly',dateInput:'mo-date',ringId:'mo-ring',numsId:'mo-prog',groups:[
+    {id:'mo-0',title:'⚙️ Genset',items:[{id:'mo-0-0',label:'Run Generators 1 & 2',type:'bool'},{id:'mo-0-1',label:'Generator Battery SG',type:'bool'}]},
+    {id:'mo-1',title:'🏢 Facility',items:[{id:'mo-1-0',label:'Test Equipment Calibration Check',type:'bool'},{id:'mo-1-1',label:'Station Tools Check',type:'bool'},{id:'mo-1-2',label:'Test Equipment Check',type:'bool'},{id:'mo-1-3',label:'Health & Safety Report',type:'bool'},{id:'mo-1-4',label:'Craft Terminal Check',type:'bool'},{id:'mo-1-5',label:'Keys, Locks & Access Cards',type:'bool'},{id:'mo-1-6',label:'Station Facility Report',type:'bool'},{id:'mo-1-7',label:'HVAC Filters',type:'bool'}]},
+    {id:'mo-2',title:'📡 System',items:[{id:'mo-2-0',label:'PFE Monthly Routine',type:'bool'},{id:'mo-2-1',label:'System Earth Resistance',type:'bool'},{id:'mo-2-2',label:'Station Earth Resistance',type:'bool'},{id:'mo-2-3',label:'Wet Plant NMS Backups',type:'bool'},{id:'mo-2-4',label:'NMS Backups Performed',type:'bool'},{id:'mo-2-5',label:'Optical Loss Comparisons',type:'bool'},{id:'mo-2-6',label:'Perform Repeater Scans',type:'bool'},{id:'mo-2-7',label:'Station NOC Report',type:'bool'}]},
+  ]},
+  'pfe':{name:'PFE Readings',container:'form-pfe',sbId:'sb-pfe',dateInput:'pfe-date',ringId:null,numsId:null,groups:[
+    {id:'pfe-0',title:'📊 DPM LED Display',items:[{id:'pfe-0-0',label:'Output Voltage (V)',type:'number',ph:'Value'},{id:'pfe-0-1',label:'Current (mA)',type:'number',ph:'Value'},{id:'pfe-0-2',label:'Battery Voltage (V)',type:'number',ph:'Value'},{id:'pfe-0-3',label:'Power Unit Current (mA)',type:'number',ph:'Value'}]},
+    {id:'pfe-1',title:'⚙️ Measurements',items:[{id:'pfe-1-0',label:'State',type:'text',ph:'Value'},{id:'pfe-1-1',label:'Routing',type:'text',ph:'Value'},{id:'pfe-1-2',label:'Cable Head',type:'text',ph:'Value'},{id:'pfe-1-3',label:'Output Mode',type:'text',ph:'Value'}]},
+    {id:'pfe-2',title:'📈 PU Monitors',items:[{id:'pfe-2-0',label:'PU Current (mA)',type:'number',ph:'Value'},{id:'pfe-2-1',label:'PU Voltage (V)',type:'number',ph:'Value'}]},
+    {id:'pfe-3',title:'📈 Common Monitors',items:[{id:'pfe-3-0',label:'Current (mA)',type:'number',ph:'Value'},{id:'pfe-3-1',label:'Voltage (V)',type:'number',ph:'Value'}]},
+    {id:'pfe-4',title:'🌍 Earth Monitor',items:[{id:'pfe-4-0',label:'Current (mA)',type:'number',ph:'Value'},{id:'pfe-4-1',label:'Voltage (V)',type:'number',ph:'Value'}]},
+    {id:'pfe-5',title:'🔋 Earth & Battery',items:[{id:'pfe-5-0',label:'Battery Voltages (V)',type:'number',ph:'Value'},{id:'pfe-5-1',label:'PU Earth Voltage (V)',type:'number',ph:'Value'},{id:'pfe-5-2',label:'Station Earth Current (mA)',type:'number',ph:'Value'},{id:'pfe-5-3',label:'Earth Current 1 (mA)',type:'number',ph:'Value'},{id:'pfe-5-4',label:'Earth Current 2 (mA)',type:'number',ph:'Value'}]},
+    {id:'pfe-6',title:'🚨 Active Alarms',items:[{id:'pfe-6-0',label:'PU1 Active Alarms',type:'text',ph:'List or NIL'},{id:'pfe-6-1',label:'PU2 Active Alarms',type:'text',ph:'List or NIL'}]},
+  ]},
+  'sixmonth':{name:'6-Month',container:'form-sm',sbId:'sb-sixmonth',dateInput:'sm-period',ringId:'sm-ring',numsId:'sm-prog',groups:[
+    {id:'sm-0',title:'📡 System',items:[{id:'sm-0-0',label:'PFE – Clean/Replace Power Converter Fan Filters',type:'bool'},{id:'sm-0-1',label:'PFE – Clean/Replace Test Load Fan Filters',type:'bool'},{id:'sm-0-2',label:'PFE – Calibrate & Test Power Converters',type:'bool'},{id:'sm-0-3',label:'System Earth Resistance (Ω)',type:'number',ph:'Enter value'},{id:'sm-0-4',label:'Station Earth Resistance (Ω)',type:'number',ph:'Enter value'},{id:'sm-0-5',label:'PFE Spare Key Inventory Check',type:'bool'},{id:'sm-0-6',label:'Fibre Portals/SLTE – Clean Fan Filters',type:'bool'},{id:'sm-0-7',label:'Dummy Load Key Location',type:'bool'}]},
+    {id:'sm-1',title:'🔋 Battery Plant',items:[{id:'sm-1-0',label:'Batteries Element Measurement',type:'bool'},{id:'sm-1-1',label:'Check Loose/Hot Connections',type:'bool'}]},
+    {id:'sm-2',title:'⚙️ Generators',items:[{id:'sm-2-0',label:'External Fuel Tanks Status',type:'bool'},{id:'sm-2-1',label:'Generator Day Fuel Tanks Status',type:'bool'},{id:'sm-2-2',label:'Fuel Cleaning System Check',type:'bool'},{id:'sm-2-3',label:'Fuel Tank Pump Status',type:'bool'},{id:'sm-2-4',label:'Fuel Pipes – Weeps/Leaks',type:'bool'},{id:'sm-2-5',label:'Water Contamination Check',type:'bool'}]},
+    {id:'sm-3',title:'❄️ HVAC',items:[{id:'sm-3-0',label:'Running Hours & Cycle Duty/Standby',type:'bool'}]},
+    {id:'sm-4',title:'🏢 Facility',items:[{id:'sm-4-0',label:'Temperature Sensor Calibration',type:'bool'},{id:'sm-4-1',label:'Humidity Sensor Calibration',type:'bool'},{id:'sm-4-2',label:'Mains Power Failure Test',type:'bool'}]},
+    {id:'sm-5',title:'🛤️ Land Route',items:[{id:'sm-5-0',label:'Visual Inspection – Beach Joint',type:'bool'},{id:'sm-5-1',label:'Visual Inspection – Land Joint',type:'bool'},{id:'sm-5-2',label:'Mains Power Failover Test',type:'bool'},{id:'sm-5-3',label:'Cable Awareness Charts Validity',type:'bool'}]},
+  ]},
+};
+
+// ─────────────────────────────────────────────────
+//  FORM STATE
+// ─────────────────────────────────────────────────
+const formState = {};
+function sv(fid, id, v) { if (!formState[fid]) formState[fid] = {}; formState[fid][id] = v; updateProg(fid); }
+function gv(fid, id) { return (formState[fid] || {})[id]; }
+
+function updateProg(fid) {
+  const fd = FORMS[fid]; if (!fd) return;
+  let tot = 0, done = 0;
+  fd.groups.forEach(g => g.items.forEach(it => { tot++; const v = gv(fid, it.id); if (v !== undefined && v !== null && v !== '') done++; }));
+  const pct = tot ? done / tot : 0;
+  const ring = document.getElementById(fd.ringId); if (ring) ring.style.strokeDashoffset = 126 - 126 * pct;
+  const nums = document.getElementById(fd.numsId); if (nums) nums.textContent = done + '/' + tot;
+  fd.groups.forEach(g => {
+    let gd = 0; g.items.forEach(it => { const v = gv(fid, it.id); if (v !== undefined && v !== null && v !== '') gd++; });
+    const el = document.getElementById('gc-' + g.id);
+    if (el) { el.textContent = gd + '/' + g.items.length; el.className = 'eg-count' + (gd === g.items.length ? ' done' : ''); }
+  });
+}
+
+// ─────────────────────────────────────────────────
+//  BUILD SIDEBARS
+// ─────────────────────────────────────────────────
+function buildSidebar(fid) {
+  const fd = FORMS[fid];
+  const el = document.getElementById(fd.sbId); if (!el) return;
+  const stn = myStation();
+  const today = new Date().toISOString().slice(0, 10);
+  const thisMonth = today.slice(0, 7);
+  const dateVal = (fid === 'monthly' || fid === 'pfe') ? thisMonth : today;
+  const dateType = (fid === 'monthly' || fid === 'pfe') ? 'month' : fid === 'sixmonth' ? 'text' : 'date';
+
+  el.innerHTML = `
+    <div class="cs-sec"><div class="cs-label">Date</div>
+      ${fid === 'sixmonth'
+        ? `<select class="form-ctrl" id="${fd.dateInput}"><option>Jan</option><option>Jul</option></select><input type="number" class="form-ctrl" id="sm-year" placeholder="Year" style="margin-top:6px" value="${new Date().getFullYear()}">`
+        : `<input type="${dateType}" class="form-ctrl" id="${fd.dateInput}" value="${dateVal}">`}
+      ${fid === 'pfe' ? `<div class="cs-label" style="margin-top:8px">Power Unit</div><select class="form-ctrl" id="pfe-pu"><option>PU1</option><option>PU2</option></select>` : ''}
+    </div>
+    <div class="cs-sec"><div class="cs-label">Technician</div>
+      <div class="cs-meta" style="font-weight:600">${SESSION.profile.name}</div>
+      <div class="cs-meta">${stn.flag} ${stn.name}</div>
+    </div>
+    ${fd.ringId ? `
+    <div class="cs-sec">
+      <div class="cs-label">Progress</div>
+      <div class="prog-ring">
+        <svg class="prog-circle" viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="none" stroke="#e8e6df" stroke-width="4"/>
+          <circle id="${fd.ringId}" cx="24" cy="24" r="20" fill="none" stroke="#1a7a4a" stroke-width="4" stroke-dasharray="126" stroke-dashoffset="126" stroke-linecap="round" transform="rotate(-90 24 24)" style="transition:stroke-dashoffset .5s"/></svg>
+        <div><div class="prog-nums" id="${fd.numsId}">0/0</div><div class="prog-lbl">completed</div></div>
+      </div>
+    </div>` : ''}
+    <div class="cs-sec">
+      <button class="btn btn-primary" onclick="saveForm('${fid}')">Save Draft</button>
+      <button class="btn btn-success" onclick="submitForm('${fid}')">✓ Submit Complete</button>
+      <button class="btn btn-pdf" onclick="openPDF('${fid}')">⬇ Generate PDF Report</button>
+    </div>`;
+}
+
+function buildSidebars() { Object.keys(FORMS).forEach(fid => buildSidebar(fid)); }
+
+// ─────────────────────────────────────────────────
+//  RENDER FORMS
+// ─────────────────────────────────────────────────
+function buildCI(fid, item) {
+  const div = document.createElement('div');
+  div.className = 'check-item'; div.id = 'ci-' + item.id;
+  const lc = document.createElement('div');
+  lc.innerHTML = `<div class="ci-lbl">${item.label}</div>${item.desc ? `<div class="ci-desc">${item.desc}</div>` : ''}<div class="ci-type">${item.type === 'bool' ? 'Yes / No' : item.type === 'number' ? 'Numerical' : 'Text'}</div>`;
+  div.appendChild(lc);
+  const cur = gv(fid, item.id);
+  const cmt = document.createElement('textarea');
+  cmt.className = 'ci-cmt' + (gv(fid, item.id + '_c') ? ' show' : '');
+  cmt.rows = 1; cmt.placeholder = 'Comment (optional)…'; cmt.value = gv(fid, item.id + '_c') || '';
+  cmt.oninput = () => sv(fid, item.id + '_c', cmt.value);
+  if (item.type === 'bool') {
+    const bt = document.createElement('div'); bt.className = 'ci-btns';
+    [['✔', 'cib-ok'], ['✖', 'cib-fail'], ['—', 'cib-skip']].forEach(([sym, cls]) => {
+      const b = document.createElement('button'); b.className = 'cib ' + cls; b.textContent = sym;
+      if (cur === sym) b.classList.add('sel');
+      b.onclick = () => {
+        bt.querySelectorAll('.cib').forEach(x => x.classList.remove('sel')); b.classList.add('sel');
+        sv(fid, item.id, sym);
+        div.className = 'check-item ans' + (sym === '✔' ? ' ans-ok' : sym === '✖' ? ' ans-fail' : '');
+        cmt.classList.add('show');
+      };
+      bt.appendChild(b);
+    });
+    div.appendChild(document.createElement('div')); div.appendChild(bt);
+  } else {
+    const inp = document.createElement('input');
+    inp.type = item.type === 'number' ? 'number' : 'text';
+    inp.className = 'ci-inp'; inp.placeholder = item.ph || ''; inp.value = cur || '';
+    inp.oninput = () => { sv(fid, item.id, inp.value); div.className = 'check-item' + (inp.value ? ' ans' : ''); };
+    div.appendChild(document.createElement('div')); div.appendChild(inp);
+  }
+  div.appendChild(cmt);
+  if (cur) div.className = 'check-item ans' + (cur === '✔' ? ' ans-ok' : cur === '✖' ? ' ans-fail' : '');
+  return div;
+}
+
+function renderForm(fid) {
+  const fd = FORMS[fid]; if (!fd) return;
+  const c = document.getElementById(fd.container); if (!c) return;
+  c.innerHTML = '';
+  fd.groups.forEach(g => {
+    const div = document.createElement('div'); div.className = 'equip-group'; div.id = 'eg-' + g.id;
+    const hdr = document.createElement('div'); hdr.className = 'eg-hdr';
+    hdr.innerHTML = `<div class="eg-title">${g.title}</div><div class="eg-count" id="gc-${g.id}">0/${g.items.length}</div><div class="chev">▾</div>`;
+    hdr.onclick = () => { div.classList.toggle('collapsed'); hdr.querySelector('.chev').style.transform = div.classList.contains('collapsed') ? 'rotate(-90deg)' : ''; };
+    const body = document.createElement('div'); body.className = 'eg-body';
+    g.items.forEach(it => body.appendChild(buildCI(fid, it)));
+    div.appendChild(hdr); div.appendChild(body); c.appendChild(div);
+  });
+  updateProg(fid);
+}
+
+// ─────────────────────────────────────────────────
+//  SUPABASE DATA
+// ─────────────────────────────────────────────────
+async function fetchRecords(filters = {}) {
+  let q = SB.from('submissions').select('*').order('submitted_at', { ascending: false });
+  if (filters.stationId) q = q.eq('station_id', filters.stationId);
+  if (filters.type) q = q.eq('routine_type', filters.type);
+  if (filters.limit) q = q.limit(filters.limit);
+  const { data, error } = await q;
+  if (error) { console.error(error); return []; }
+  return data || [];
+}
+
+function gatherData(fid) {
+  const fd = FORMS[fid]; let ok = 0, fail = 0, skip = 0, total = 0;
+  const items = {};
+  fd.groups.forEach(g => g.items.forEach(it => {
+    total++; const v = gv(fid, it.id);
+    items[it.id] = { label: it.label, value: v, comment: gv(fid, it.id + '_c'), group: g.title };
+    if (v === '✔') ok++; else if (v === '✖') fail++; else if (v === '—') skip++;
+  }));
+  return { ok, fail, skip, total, items };
+}
+
+async function saveForm(fid) {
+  if (!SESSION || isSup()) return;
+  const d = gatherData(fid);
+  const fd = FORMS[fid];
+  const dateEl = document.getElementById(fd.dateInput);
+  const stn = myStation();
+  const rec = {
+    station_id: stn.id, station_name: stn.name, station_flag: stn.flag,
+    routine_type: fid, date: dateEl ? dateEl.value : new Date().toISOString().slice(0, 10),
+    technician_name: SESSION.profile.name, technician_email: SESSION.user.email,
+    ok_count: d.ok, fail_count: d.fail, skip_count: d.skip, total_items: d.total,
+    items_json: d.items, status: 'draft', user_id: SESSION.user.id,
+    submitted_at: new Date().toISOString()
+  };
+  showLoader('Saving…');
+  const { error } = await SB.from('submissions').insert(rec);
+  hideLoader();
+  if (error) { showToast('❌ Save failed: ' + error.message); return; }
+  showToast('Draft saved ✔');
+  updateDashboard();
+}
+
+async function submitForm(fid) {
+  if (!SESSION || isSup()) return;
+  const d = gatherData(fid);
+  const fd = FORMS[fid];
+  const dateEl = document.getElementById(fd.dateInput);
+  const stn = myStation();
+  const rec = {
+    station_id: stn.id, station_name: stn.name, station_flag: stn.flag,
+    routine_type: fid, date: dateEl ? dateEl.value : new Date().toISOString().slice(0, 10),
+    technician_name: SESSION.profile.name, technician_email: SESSION.user.email,
+    ok_count: d.ok, fail_count: d.fail, skip_count: d.skip, total_items: d.total,
+    items_json: d.items, status: 'submitted', user_id: SESSION.user.id,
+    submitted_at: new Date().toISOString()
+  };
+  showLoader('Submitting…');
+  const { error } = await SB.from('submissions').insert(rec);
+  hideLoader();
+  if (error) { showToast('❌ Submit failed: ' + error.message); return; }
+  delete formState[fid];
+  showToast('Submitted successfully! ✅');
+  updateDashboard(); updateOverdueBar(); renderForm(fid);
+}
+
+// ─────────────────────────────────────────────────
+//  DASHBOARD
+// ─────────────────────────────────────────────────
+async function updateDashboard() {
+  if (!SESSION) return;
+  document.getElementById('date-badge').textContent = new Date().toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+  document.getElementById('dash-sub').textContent = (isSup() ? 'Supervisor · ' : '') + myStation().flag + ' ' + (isSup() ? 'All Stations' : myStation().name) + ' · ' + SESSION.profile.name;
+
+  const all = await fetchRecords({ limit: 200 });
+  const submitted = all.filter(r => r.status === 'submitted');
+  const today = new Date().toISOString().slice(0, 10);
+  const todayAll = submitted.filter(r => r.date === today);
+  const stnId = myStation().id;
+  const myToday = submitted.filter(r => r.station_id === stnId && r.date === today);
+
+  document.getElementById('kpi-total').textContent = submitted.length;
+  let mOk = 0, mTot = 0;
+  myToday.forEach(r => { mOk += r.ok_count || 0; mTot += r.total_items || 0; });
+  const myPct = mTot ? Math.round(mOk / mTot * 100) : 0;
+  document.getElementById('kpi-score').textContent = myPct + '%';
+  document.getElementById('kpi-score-bar').style.width = myPct + '%';
+  let allFail = 0; todayAll.forEach(r => allFail += r.fail_count || 0);
+  document.getElementById('kpi-issues').textContent = allFail;
+  document.getElementById('kpi-stations').textContent = new Set(todayAll.map(r => r.station_id)).size;
+  document.getElementById('my-stn-badge').textContent = myStation().flag + ' ' + myStation().id;
+
+  drawMainChart(submitted);
+  buildStationCards(submitted, today);
+
+  // Recent
+  const tbody = document.getElementById('recent-tbody');
+  const rec10 = submitted.slice(0, 12);
+  tbody.innerHTML = rec10.length ? rec10.map(r => {
+    const sc = r.total_items ? Math.round((r.ok_count || 0) / r.total_items * 100) : 0;
+    const cls = sc >= 90 ? 'ok' : sc >= 70 ? 'partial' : 'fail';
+    return `<tr><td>${r.station_flag || ''} <strong>${r.station_id || '—'}</strong></td><td>${r.date || '—'}</td><td style="font-size:11px;color:var(--text3)">${LABELS[r.routine_type] || r.routine_type}</td><td>${r.technician_name || '—'}</td><td><span class="pill ${cls}">${sc}%</span></td></tr>`;
+  }).join('') : `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text3)">📋 No records yet</td></tr>`;
+
+  // My routine status
+  const myAll = submitted.filter(r => r.station_id === stnId);
+  const thisMonth = today.slice(0, 7);
+  document.getElementById('my-status').innerHTML = Object.keys(FORMS).map(type => {
+    const latest = myAll.find(r => r.routine_type === type);
+    const todayDone = myAll.some(r => r.routine_type === type && r.date === today);
+    let pill;
+    if (type === 'daily-fac' || type === 'daily-eq') {
+      pill = todayDone ? `<span class="pill ok">Done today</span>` : `<span class="pill fail">Pending</span>`;
+    } else {
+      pill = latest ? `<span class="pill ${todayDone ? 'ok' : 'skip'}">${latest.date}</span>` : `<span class="pill fail">No record</span>`;
+    }
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 4px;border-bottom:1px solid var(--bg3)"><span style="font-size:12px">${LABELS[type]}</span>${pill}</div>`;
+  }).join('');
+
+  if (isSup()) updateSupervisorView(submitted, today);
+  renderHistory(submitted);
+}
+
+// ─────────────────────────────────────────────────
+//  STATION CARDS & CHARTS
+// ─────────────────────────────────────────────────
+function buildStationCards(submitted, today) {
+  const grid = document.getElementById('all-stn-grid'); grid.innerHTML = '';
+  STATIONS.forEach(stn => {
+    const sr = submitted.filter(r => r.station_id === stn.id);
+    const tr = sr.filter(r => r.date === today);
+    let sc = 'empty', st = 'No data';
+    if (tr.length > 0) {
+      const anyFail = tr.some(r => (r.fail_count || 0) > 0);
+      if (!anyFail) { sc = 'done'; st = '✔ All clear'; }
+      else { sc = 'partial'; st = '⚠ ' + tr.reduce((a, r) => a + (r.fail_count || 0), 0) + ' issues'; }
+    } else if (sr.length > 0) { sc = 'pending'; st = 'Pending today'; }
+    let tOk = 0, tTot = 0; tr.forEach(r => { tOk += r.ok_count || 0; tTot += r.total_items || 0; });
+    const score = tTot ? Math.round(tOk / tTot * 100) : null;
+    const sCls = score === null ? '' : score >= 90 ? 'green' : score >= 70 ? 'orange' : 'red';
+    const sparkData = buildSparkData(sr);
+    const card = document.createElement('div'); card.className = 'station-card';
+    card.innerHTML = `<div class="sc-header"><div class="sc-flag">${stn.flag}</div><div class="sc-info"><div class="sc-name">${stn.name} <span style="font-size:10px;color:var(--text3);font-weight:400">${stn.id}</span></div><div class="sc-loc">${stn.country}</div></div><div class="sc-status ${sc}">${st}</div></div><div class="sc-spark"><svg id="spark-${stn.id}"></svg></div><div class="sc-footer"><span>Last 8 weeks · ${sr.length} records</span>${score !== null ? `<span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--${sCls === 'green' ? 'ok' : sCls === 'orange' ? 'warn' : 'fail'})">${score}%</span>` : '<span style="color:var(--text3)">—</span>'}</div>`;
+    grid.appendChild(card);
+    setTimeout(() => drawSparkline('spark-' + stn.id, sparkData), 0);
+  });
+}
+
+function buildSparkData(recs) {
+  const w = 8, data = new Array(w).fill(0), now = new Date();
+  for (let i = 0; i < w; i++) {
+    const ws = new Date(now); ws.setDate(ws.getDate() - 7 * (w - 1 - i));
+    const we = new Date(ws); we.setDate(we.getDate() + 7);
+    data[i] = recs.filter(r => r.date >= ws.toISOString().slice(0, 10) && r.date < we.toISOString().slice(0, 10)).length;
+  }
+  return data;
+}
+
+function drawSparkline(id, data) {
+  const svg = document.getElementById(id); if (!svg) return;
+  const W = svg.parentElement.offsetWidth || 260, H = 34;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const max = Math.max(...data, 1);
+  const pts = data.map((v, i) => [(i / (data.length - 1)) * (W - 4) + 2, H - 2 - (v / max) * (H - 10) - 4]);
+  const mkPath = (d, fill, stroke) => { const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', d); p.setAttribute('fill', fill); if (stroke) { p.setAttribute('stroke', stroke); p.setAttribute('stroke-width', '1.5'); p.setAttribute('stroke-linecap', 'round'); p.setAttribute('stroke-linejoin', 'round'); } return p; };
+  svg.innerHTML = '';
+  svg.appendChild(mkPath(`M${pts[0][0]},${H} L${pts.map(p => p.join(',')).join(' L')} L${pts[pts.length - 1][0]},${H} Z`, 'rgba(26,92,138,0.08)', null));
+  svg.appendChild(mkPath(`M${pts.map(p => p.join(',')).join(' L')}`, 'none', '#1a5c8a'));
+  const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  const lp = pts[pts.length - 1];
+  dot.setAttribute('cx', lp[0]); dot.setAttribute('cy', lp[1]); dot.setAttribute('r', '3');
+  dot.setAttribute('fill', data[data.length - 1] > 0 ? '#1a7a4a' : '#c0392b');
+  dot.setAttribute('stroke', 'white'); dot.setAttribute('stroke-width', '1.5');
+  svg.appendChild(dot);
+}
+
+function drawMainChart(submitted) {
+  const svg = document.getElementById('main-chart'); if (!svg) return;
+  const W = svg.parentElement.offsetWidth || 800, H = 160;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.innerHTML = '';
+  const months = [], now = new Date();
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ label: d.toLocaleString('en', { month: 'short' }), key: d.toISOString().slice(0, 7) });
+  }
+  const counts = months.map(m => {
+    const recs = submitted.filter(r => r.date && r.date.startsWith(m.key));
+    const tOk = recs.reduce((a, r) => a + (r.ok_count || 0), 0);
+    const tAll = recs.reduce((a, r) => a + (r.total_items || 0), 0);
+    return tAll ? Math.round(tOk / tAll * 100) : 0;
+  });
+  const pL = 34, pR = 14, pT = 10, pB = 26, cW = W - pL - pR, cH = H - pT - pB;
+  [0, 25, 50, 75, 100].forEach(v => {
+    const y = pT + cH - (v / 100) * cH;
+    const gl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    gl.setAttribute('x1', pL); gl.setAttribute('x2', W - pR); gl.setAttribute('y1', y); gl.setAttribute('y2', y);
+    gl.setAttribute('stroke', v === 0 ? '#c8c4ba' : '#e8e6df'); gl.setAttribute('stroke-width', '1'); svg.appendChild(gl);
+    const lt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    lt.setAttribute('x', pL - 4); lt.setAttribute('y', y + 4); lt.setAttribute('text-anchor', 'end');
+    lt.setAttribute('font-size', '9'); lt.setAttribute('fill', '#9a9890'); lt.textContent = v + '%'; svg.appendChild(lt);
+  });
+  const pts = counts.map((v, i) => [pL + (i / (months.length - 1)) * cW, pT + cH - (v / 100) * cH]);
+  const mkNS = (tag) => document.createElementNS('http://www.w3.org/2000/svg', tag);
+  const area = mkNS('path'); area.setAttribute('d', `M${pts[0][0]},${pT + cH} L${pts.map(p => p.join(',')).join(' L')} L${pts[pts.length - 1][0]},${pT + cH} Z`); area.setAttribute('fill', 'rgba(26,92,138,0.06)'); svg.appendChild(area);
+  const line = mkNS('path'); line.setAttribute('d', `M${pts.map(p => p.join(',')).join(' L')}`); line.setAttribute('fill', 'none'); line.setAttribute('stroke', '#1a5c8a'); line.setAttribute('stroke-width', '2'); line.setAttribute('stroke-linecap', 'round'); line.setAttribute('stroke-linejoin', 'round'); svg.appendChild(line);
+  pts.forEach((pt, i) => {
+    const c = counts[i];
+    const dot = mkNS('circle'); dot.setAttribute('cx', pt[0]); dot.setAttribute('cy', pt[1]); dot.setAttribute('r', i === pts.length - 1 ? '4' : '3');
+    dot.setAttribute('fill', c >= 80 ? '#1a7a4a' : c >= 50 ? '#b85c00' : c > 0 ? '#c0392b' : '#dddad2'); dot.setAttribute('stroke', 'white'); dot.setAttribute('stroke-width', '1.5'); svg.appendChild(dot);
+    const lt = mkNS('text'); lt.setAttribute('x', pt[0]); lt.setAttribute('y', H - 4); lt.setAttribute('text-anchor', 'middle'); lt.setAttribute('font-size', '9'); lt.setAttribute('fill', '#9a9890'); lt.textContent = months[i].label; svg.appendChild(lt);
+  });
+}
+
+// ─────────────────────────────────────────────────
+//  OVERDUE ALERTS
+// ─────────────────────────────────────────────────
+async function updateOverdueBar() {
+  if (!SESSION || isSup()) return;
+  const stnId = myStation().id;
+  const recs = await fetchRecords({ stationId: stnId, limit: 100 });
+  const submitted = recs.filter(r => r.status === 'submitted');
+  const ov = calcOverdue(submitted, stnId);
+  document.getElementById('kpi-overdue').textContent = ov.length;
+  const bar = document.getElementById('overdue-bar');
+  const items = document.getElementById('overdue-items');
+  if (ov.length === 0) { bar.classList.remove('show'); return; }
+  bar.classList.add('show');
+  items.innerHTML = ov.map(o => `<span class="alert-chip">${o.label}</span>`).join('');
+  document.getElementById('overdue-time').textContent = new Date().toLocaleTimeString('en-ZA', { hour12: false, hour: '2-digit', minute: '2-digit' });
+}
+
+function calcOverdue(submitted, stnId) {
+  const today = new Date().toISOString().slice(0, 10);
+  const thisMonth = today.slice(0, 7);
+  const now = new Date();
+  const ov = [];
+  const pastCutoff = now.getHours() >= 9;
+  if (pastCutoff) {
+    ['daily-fac', 'daily-eq'].forEach(type => {
+      if (!submitted.some(r => r.routine_type === type && r.date === today))
+        ov.push({ type, label: LABELS[type], reason: 'Not submitted today' });
+    });
+  }
+  const weekStart = new Date(now); weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+  if (!submitted.some(r => r.routine_type === 'weekly' && r.date >= weekStart.toISOString().slice(0, 10)))
+    ov.push({ type: 'weekly', label: 'Weekly', reason: 'Not submitted this week' });
+  ['monthly', 'pfe'].forEach(type => {
+    if (!submitted.some(r => r.routine_type === type && r.date && r.date.startsWith(thisMonth)))
+      ov.push({ type, label: LABELS[type], reason: 'Not submitted this month' });
+  });
+  return ov;
+}
+
+// ─────────────────────────────────────────────────
+//  SUPERVISOR VIEW
+// ─────────────────────────────────────────────────
+async function updateSupervisorView(submitted, today) {
+  const todayAll = submitted.filter(r => r.date === today);
+  let tOk = 0, tTot = 0, tFail = 0;
+  todayAll.forEach(r => { tOk += r.ok_count || 0; tTot += r.total_items || 0; tFail += r.fail_count || 0; });
+  const netPct = tTot ? Math.round(tOk / tTot * 100) : 0;
+  document.getElementById('sup-score').textContent = netPct + '%';
+  document.getElementById('sup-score-bar').style.width = netPct + '%';
+  document.getElementById('sup-rep').textContent = new Set(todayAll.map(r => r.station_id)).size + '/9';
+  document.getElementById('sup-issues').textContent = tFail;
+
+  let totalOv = 0;
+  const ovRows = [];
+  STATIONS.forEach(stn => {
+    const sr = submitted.filter(r => r.station_id === stn.id);
+    const ov = calcOverdue(sr, stn.id);
+    totalOv += ov.length;
+    if (ov.length > 0) ovRows.push({ stn, ov });
+  });
+  document.getElementById('sup-overdue').textContent = totalOv;
+
+  const ovList = document.getElementById('sup-overdue-list');
+  ovList.innerHTML = ovRows.length ? ovRows.map(({ stn, ov }) => `
+    <div class="overdue-row">
+      <div style="font-size:20px">${stn.flag}</div>
+      <div style="flex:1"><div class="ov-name">${stn.name} (${stn.id})</div><div class="ov-types">${ov.map(o => o.label + ': ' + o.reason).join(' · ')}</div></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--fail)">${ov.length} overdue</div>
+    </div>`).join('') : '<div style="text-align:center;padding:16px;color:var(--text3)">✅ All stations up to date</div>';
+
+  // Heatmap
+  const rtypes = Object.keys(FORMS);
+  const hm = document.getElementById('sup-heatmap'); hm.innerHTML = '';
+  const mk = (cls, txt) => { const e = document.createElement('div'); e.className = cls; e.textContent = txt || ''; return e; };
+  hm.appendChild(mk('hm-lbl', ''));
+  rtypes.forEach(t => { const h = mk('hm-hdr', ''); h.textContent = LABELS[t]; hm.appendChild(h); });
+  const thisMonth = today.slice(0, 7);
+  STATIONS.forEach(stn => {
+    hm.appendChild(mk('hm-lbl', stn.flag + ' ' + stn.id));
+    rtypes.forEach(type => {
+      const sr = submitted.filter(r => r.station_id === stn.id && r.routine_type === type);
+      const tr = (type === 'daily-fac' || type === 'daily-eq') ? sr.filter(r => r.date === today) : sr.filter(r => r.date && r.date.startsWith(thisMonth));
+      const ok = tr.reduce((a, r) => a + (r.ok_count || 0), 0);
+      const tot = tr.reduce((a, r) => a + (r.total_items || 0), 0);
+      const sc = tot ? Math.round(ok / tot * 100) : 0;
+      const cls = sc >= 90 ? 'hm-100' : sc >= 70 ? 'hm-80' : sc >= 40 ? 'hm-60' : sc > 0 ? 'hm-40' : 'hm-0';
+      const cell = mk('hm-cell ' + cls, sc > 0 ? sc + '%' : sr.length ? '—' : '×');
+      cell.title = stn.name + ' · ' + LABELS[type] + ': ' + (sc > 0 ? sc + '%' : 'No data');
+      hm.appendChild(cell);
+    });
+  });
+  renderSupTable(submitted);
+}
+
+function renderSupTable(submitted) {
+  const all = submitted || [];
+  const sf = document.getElementById('sup-stn-filter')?.value || '';
+  const filtered = sf ? all.filter(r => r.station_id === sf) : all.slice(0, 60);
+  const tbody = document.getElementById('sup-tbody'); if (!tbody) return;
+  tbody.innerHTML = filtered.map(r => {
+    const sc = r.total_items ? Math.round((r.ok_count || 0) / r.total_items * 100) : 0;
+    const cls = sc >= 90 ? 'ok' : sc >= 70 ? 'partial' : 'fail';
+    return `<tr><td>${r.station_flag || ''} <strong>${r.station_id}</strong></td><td>${r.date}</td><td>${LABELS[r.routine_type] || r.routine_type}</td><td>${r.technician_name}</td><td class="text-ok mono">${r.ok_count || 0}</td><td class="text-fail mono">${r.fail_count || 0}</td><td><span class="pill ${cls}">${sc}%</span></td><td><span class="pill ${r.status === 'submitted' ? 'ok' : 'skip'}">${r.status}</span></td><td><button onclick="openPDFFromRec(${JSON.stringify(r).replace(/"/g, '&quot;')})" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--accent)" title="PDF">📄</button></td></tr>`;
+  }).join('') || `<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text3)">📂 No records</td></tr>`;
+}
+
+// ─────────────────────────────────────────────────
+//  PDF
+// ─────────────────────────────────────────────────
+function openPDF(fid) {
+  if (!SESSION) return;
+  const fd = FORMS[fid];
+  const dateEl = document.getElementById(fd.dateInput);
+  const d = gatherData(fid);
+  const rec = {
+    routine_type: fid, date: dateEl ? dateEl.value : new Date().toISOString().slice(0, 10),
+    technician_name: SESSION.profile.name, station_name: myStation().name,
+    station_flag: myStation().flag, station_id: myStation().id,
+    ok_count: d.ok, fail_count: d.fail, skip_count: d.skip, total_items: d.total,
+    items_json: d.items, status: 'current', submitted_at: new Date().toISOString()
+  };
+  buildPDFContent(rec, fd);
+  document.getElementById('pdf-overlay').classList.add('show');
+}
+
+function openPDFFromRec(rec) {
+  const fd = FORMS[rec.routine_type];
+  buildPDFContent(rec, fd);
+  document.getElementById('pdf-overlay').classList.add('show');
+}
+
+function buildPDFContent(rec, fd) {
+  const sc = rec.total_items ? Math.round((rec.ok_count || 0) / rec.total_items * 100) : 0;
+  const scColor = sc >= 90 ? '#1a7a4a' : sc >= 70 ? '#b85c00' : '#c0392b';
+  const items = rec.items_json || {};
+  const grouped = {};
+  if (fd) {
+    fd.groups.forEach(g => {
+      grouped[g.title] = g.items.map(it => ({ ...it, ...(items[it.id] || {}) }));
+    });
+  }
+  const rows = Object.entries(grouped).map(([grp, its]) => `
+    <div class="pdf-sec-title">${grp}</div>
+    ${its.map(it => {
+      const v = it.value; const vc = v === '✔' ? 'ok' : v === '✖' ? 'fail' : v === '—' ? 'skip' : '';
+      return `<div class="pdf-row"><div><div class="pdf-row-lbl">${it.label}</div></div><div class="pdf-row-val ${vc}">${v !== undefined && v !== null && v !== '' ? v : '—'}</div>${it.comment ? `<div class="pdf-cmt">💬 ${it.comment}</div>` : ''}</div>`;
+    }).join('')}`).join('');
+
+  document.getElementById('pdf-content').innerHTML = `
+    <div class="pdf-logo-bar"><img src="data:image/png;base64,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" style="height:30px;object-fit:contain" alt="EASSy"><div><div class="pdf-logo-text">EASSy Cable Landing Station — Routine Report</div><div class="pdf-logo-sub">Amanzimtoti Cable Network — Operations & Maintenance</div></div><div style="margin-left:auto;font-size:22px">${rec.station_flag || '🌍'}</div></div>
+    <div class="pdf-title">${fd?.name || rec.routine_type} Routine</div>
+    <div class="pdf-meta-row">
+      <div class="pdf-meta-item"><label>Station</label><span>${rec.station_flag || ''} ${rec.station_name || '—'} (${rec.station_id || '—'})</span></div>
+      <div class="pdf-meta-item"><label>Date</label><span>${rec.date || '—'}</span></div>
+      <div class="pdf-meta-item"><label>Technician</label><span>${rec.technician_name || '—'}</span></div>
+      <div class="pdf-meta-item"><label>Status</label><span>${rec.status || '—'}</span></div>
+      ${rec.submitted_at ? `<div class="pdf-meta-item"><label>Submitted</label><span>${new Date(rec.submitted_at).toLocaleString('en-ZA')}</span></div>` : ''}
+    </div>
+    ${rows}
+    <div class="pdf-summary"><div class="pdf-sum-item"><label>✔ OK</label><span class="ok">${rec.ok_count || 0}</span></div><div class="pdf-sum-item"><label>✖ Issues</label><span class="fail">${rec.fail_count || 0}</span></div><div class="pdf-sum-item"><label>— Skip</label><span style="color:#7a7870">${rec.skip_count || 0}</span></div><div class="pdf-sum-item"><label>Total</label><span>${rec.total_items || 0}</span></div><div class="pdf-sum-item"><label>Score</label><span style="color:${scColor}">${sc}%</span></div></div>
+    <div class="pdf-sigs"><div class="pdf-sig" style="flex:1"><label>Technician Signature</label><div class="pdf-sig-line"></div><div class="pdf-sig-name">${rec.technician_name || '—'}</div></div><div class="pdf-sig" style="flex:1"><label>Supervisor Signature</label><div class="pdf-sig-line"></div><div class="pdf-sig-name">Date: ___________</div></div></div>
+    <div class="pdf-footer">Generated ${new Date().toLocaleString('en-ZA')} · VS CLS Routines Platform · Valid only when signed</div>`;
+}
+
+function closePDF() { document.getElementById('pdf-overlay').classList.remove('show'); }
+
+// ─────────────────────────────────────────────────
+//  HISTORY
+// ─────────────────────────────────────────────────
+let _lastFetched = [];
+function renderHistory(data) {
+  if (data) _lastFetched = data;
+  const sf = document.getElementById('hist-stn')?.value || '';
+  const tf = document.getElementById('hist-type')?.value || '';
+  const s = (document.getElementById('hist-search')?.value || '').toLowerCase();
+  const f = _lastFetched.filter(r => (!sf || r.station_id === sf) && (!tf || r.routine_type === tf) && (!s || (r.technician_name || '').toLowerCase().includes(s)));
+  const tbody = document.getElementById('hist-tbody'); if (!tbody) return;
+  tbody.innerHTML = f.length ? f.map(r => {
+    const sc = r.total_items ? Math.round((r.ok_count || 0) / r.total_items * 100) : 0;
+    const cls = sc >= 90 ? 'ok' : sc >= 70 ? 'partial' : 'fail';
+    return `<tr><td>${r.station_flag || ''} <strong>${r.station_id}</strong></td><td>${r.date}</td><td>${LABELS[r.routine_type] || r.routine_type}</td><td>${r.technician_name}</td><td class="text-ok mono">${r.ok_count || 0}</td><td class="text-fail mono">${r.fail_count || 0}</td><td><span class="pill ${cls}">${sc}%</span></td><td><span class="pill ${r.status === 'submitted' ? 'ok' : 'skip'}">${r.status}</span></td><td><button onclick="openPDFFromRec(${JSON.stringify(r).replace(/"/g, '&quot;')})" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--accent)" title="PDF">📄</button></td></tr>`;
+  }).join('') : `<tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text3)">📂 No records</td></tr>`;
+}
+
+function exportCSV() {
+  if (!_lastFetched.length) { showToast('No data to export'); return; }
+  const hdr = ['Station', 'Date', 'Type', 'Technician', 'OK', 'Fail', 'Skip', 'Total', 'Score%', 'Status'];
+  const rows = _lastFetched.map(r => { const sc = r.total_items ? Math.round((r.ok_count || 0) / r.total_items * 100) : 0; return [r.station_id, r.date, r.routine_type, r.technician_name, r.ok_count, r.fail_count, r.skip_count, r.total_items, sc + '%', r.status].join(','); });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([[hdr.join(','), ...rows].join('\n')], { type: 'text/csv' }));
+  a.download = 'cls_routines_' + new Date().toISOString().slice(0, 10) + '.csv'; a.click();
+  showToast('CSV exported');
+}
+
+// ─────────────────────────────────────────────────
+//  PAGE NAV
+// ─────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  const pg = document.getElementById('page-' + id); if (pg) pg.classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => { if (t.getAttribute('onclick') === `showPage('${id}')`) t.classList.add('active'); });
+  if (FORMS[id]) renderForm(id);
+  if (id === 'history') renderHistory();
+  if (id === 'dashboard' || id === 'supervisor') updateDashboard();
+}
+
+function showScreen(id) {
+  ['config-banner', 'login-screen', 'reset-screen', 'verify-screen', 'app-screen'].forEach(s => {
+    const el = document.getElementById(s);
+    if (el) el.style.display = s === id ? (s === 'app-screen' ? 'block' : 'flex') : 'none';
+  });
+}
+
+// ─────────────────────────────────────────────────
+//  UTILITY
+// ─────────────────────────────────────────────────
+function showLoader(txt) { const l = document.getElementById('loader'); l.classList.add('show'); document.getElementById('loader-text').textContent = txt || 'Loading…'; }
+function hideLoader() { document.getElementById('loader').classList.remove('show'); }
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2800); }
+
+// ─────────────────────────────────────────────────
+//  LOGIN STATION STATUS GRID
+// ─────────────────────────────────────────────────
+async function buildStationStatusGrid() {
+  const grid = document.getElementById('stn-status-grid'); if (!grid) return;
+  grid.innerHTML = '';
+  let submitted = [];
+  if (SB) {
+    const { data } = await SB.from('submissions').select('station_id,date').eq('status', 'submitted');
+    submitted = data || [];
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  STATIONS.forEach(s => {
+    const hasToday = submitted.some(r => r.station_id === s.id && r.date === today);
+    const hasAny = submitted.some(r => r.station_id === s.id);
+    const card = document.createElement('div'); card.className = 'smc';
+    card.innerHTML = `<div class="flag-e">${s.flag}</div><div><div class="stn-n">${s.name}</div><div class="stn-c">${s.country}</div></div><div class="stn-dot ${hasToday ? 'online' : hasAny ? 'recent' : ''}"></div>`;
+    grid.appendChild(card);
+  });
+}
+
+function populateStationDropdowns() {
+  ['reg-station', 'hist-stn', 'sup-stn-filter'].forEach(elId => {
+    const el = document.getElementById(elId); if (!el) return;
+    el.innerHTML = elId === 'reg-station' ? '<option value="">— Select your station —</option>' : '<option value="">All Stations</option>';
+    STATIONS.forEach(s => { const o = document.createElement('option'); o.value = s.id; o.textContent = s.flag + ' ' + s.name; el.appendChild(o); });
+  });
+}
+
+// ─────────────────────────────────────────────────
+//  START
+// ─────────────────────────────────────────────────
+async function startApp() {
+  populateStationDropdowns();
+  showScreen('login-screen');
+  buildStationStatusGrid();
+
+  // Check if already logged in
+  const { data: { session } } = await SB.auth.getSession();
+  if (session?.user) {
+    showLoader('Restoring session…');
+    await loadProfile(session.user);
+    return;
+  }
+
+  // Listen for auth changes (e.g. after email confirm redirect)
+  SB.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_IN' && session && !SESSION) {
+      showLoader('Signing you in…');
+      await loadProfile(session.user);
+    }
+    if (event === 'SIGNED_OUT') { SESSION = null; showScreen('login-screen'); }
+  });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  if (checkConfig()) startApp();
+  document.getElementById('si-password').addEventListener('keydown', e => { if (e.key === 'Enter') doSignIn(); });
+  document.getElementById('pdf-overlay').addEventListener('click', e => { if (e.target === document.getElementById('pdf-overlay')) closePDF(); });
+
+  // Clock
+  setInterval(() => {
+    const db = document.getElementById('date-badge');
+    if (db && SESSION) db.textContent = new Date().toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }) + ' · ' + new Date().toLocaleTimeString('en-ZA', { hour12: false, hour: '2-digit', minute: '2-digit' });
+  }, 60000);
+});
+</script>
+</body>
+</html>
