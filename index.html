@@ -693,15 +693,15 @@ function checkConfig() {
 //  STATIONS
 // ─────────────────────────────────────────────────
 const STATIONS = [
-  {id:'MTZ',name:'Mtunzini',country:'South Africa',flag:'🇿🇦'},
-  {id:'MAP',name:'Maputo',country:'Mozambique',flag:'🇲🇿'},
-  {id:'DAR',name:'Dar es Salaam',country:'Tanzania',flag:'🇹🇿'},
-  {id:'MOM',name:'Mombasa',country:'Kenya',flag:'🇰🇪'},
+  {id:'MNZ',name:'Mtunzini',country:'South Africa',flag:'🇿🇦'},
+  {id:'MPT',name:'Maputo',country:'Mozambique',flag:'🇲🇿'},
+  {id:'DES',name:'Dar es Salaam',country:'Tanzania',flag:'🇹🇿'},
+  {id:'MBS',name:'Mombasa',country:'Kenya',flag:'🇰🇪'},
   {id:'MGD',name:'Mogadishu',country:'Somalia',flag:'🇸🇴'},
   {id:'DJI',name:'Djibouti',country:'Djibouti',flag:'🇩🇯'},
   {id:'PSD',name:'Port Sudan',country:'Sudan',flag:'🇸🇩'},
-  {id:'MOR',name:'Moroni',country:'Comoros',flag:'🇰🇲'},
-  {id:'TOL',name:'Toliary',country:'Madagascar',flag:'🇲🇬'},
+  {id:'MRN',name:'Moroni',country:'Comoros',flag:'🇰🇲'},
+  {id:'TLR',name:'Toliary',country:'Madagascar',flag:'🇲🇬'},
 ];
 
 const LABELS = {'daily-fac':'Daily Facility','daily-eq':'Daily Equipment','weekly':'Weekly','monthly':'Monthly','pfe':'PFE Readings','sixmonth':'6 Month'};
@@ -810,7 +810,7 @@ async function loadProfile(user) {
     profile = {
       id: user.id,
       name: user.user_metadata?.name || user.email.split('@')[0],
-      station_id: user.user_metadata?.station_id || 'MTZ',
+      station_id: user.user_metadata?.station_id || 'MNZ',
       role: user.user_metadata?.role || 'technician',
       email: user.email
     };
