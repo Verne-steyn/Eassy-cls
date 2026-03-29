@@ -951,7 +951,7 @@ const EASSY_LOGO = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX
 const SUPABASE_URL = 'https://wpblebjftxcdfrwwguti.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmxlYmpmdHhjZGZyd3dndXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Njg3NTAsImV4cCI6MjA4OTU0NDc1MH0.oaBljcLPFa3JPLp_e-2FgCcylwAOPAdHpkzGctOwfo0';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ═══════════════════════════════════════════════════════
 // STATION DATA
@@ -1386,7 +1386,7 @@ async function handleLogin(e) {
   const password = document.getElementById('login-password').value;
   document.getElementById('login-btn-text').innerHTML = '<span class="spinner"></span>';
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
   document.getElementById('login-btn-text').textContent = 'Sign In';
 
   if (error) return showAuthError(error.message);
@@ -1408,7 +1408,7 @@ async function handleRegister(e) {
 
   document.getElementById('reg-btn-text').innerHTML = '<span class="spinner"></span>';
 
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await sb.auth.signUp({
     email,
     password,
     options: {
@@ -1423,7 +1423,7 @@ async function handleRegister(e) {
 }
 
 async function logout() {
-  await supabase.auth.signOut();
+  await sb.auth.signOut();
   currentUser = null;
   currentProfile = null;
   document.getElementById('auth-page').style.display = 'flex';
@@ -1439,7 +1439,7 @@ async function initApp(user) {
   currentUser = user;
 
   // Load profile
-  const { data: profile } = await supabase
+  const { data: profile } = await sb
     .from('profiles')
     .select('*')
     .eq('id', user.id)
@@ -1657,7 +1657,7 @@ async function submitRoutine(routineType) {
     comments,
   };
 
-  const { error } = await supabase
+  const { error } = await sb
     .from('submissions')
     .upsert(payload, { onConflict: 'station_code,routine_type,period_key' });
 
@@ -1676,7 +1676,7 @@ async function loadExisting(routineType) {
   const routine = ROUTINES[routineType];
   const periodKey = getPeriodKey(routine.frequency);
 
-  const { data: sub } = await supabase
+  const { data: sub } = await sb
     .from('submissions')
     .select('*')
     .eq('station_code', currentProfile.station_code)
@@ -1723,7 +1723,7 @@ async function loadExisting(routineType) {
 // BASELINES & VARIANCE
 // ═══════════════════════════════════════════════════════
 async function loadAllBaselines() {
-  const { data } = await supabase
+  const { data } = await sb
     .from('baselines')
     .select('*')
     .eq('station_code', currentProfile.station_code);
@@ -1747,7 +1747,7 @@ async function setBaselinesIfFirst(routineType, data) {
     if (currentBaselines[bk] === undefined) {
       const val = parseFloat(data[key]);
       if (!isNaN(val)) {
-        await supabase.from('baselines').upsert({
+        await sb.from('baselines').upsert({
           station_code: currentProfile.station_code,
           routine_type: routineType,
           field_key: key,
@@ -1790,13 +1790,13 @@ async function loadDashboard() {
   const month = today.substring(0, 7);
 
   // Fetch today's submissions
-  const { data: todaySubs } = await supabase
+  const { data: todaySubs } = await sb
     .from('submissions')
     .select('station_code, routine_type, submitted_by_name')
     .eq('period_key', today);
 
   // Fetch month's submissions
-  const { data: monthSubs } = await supabase
+  const { data: monthSubs } = await sb
     .from('submissions')
     .select('station_code, routine_type, period_key')
     .like('period_key', `${month}%`);
@@ -2031,7 +2031,7 @@ async function downloadCSV() {
   const type = document.getElementById('report-type').value;
   const month = document.getElementById('report-month').value;
 
-  let query = supabase.from('submissions').select('*').like('period_key', `${month}%`).order('period_key');
+  let query = sb.from('submissions').select('*').like('period_key', `${month}%`).order('period_key');
   if (station) query = query.eq('station_code', station);
   if (type) query = query.eq('routine_type', type);
 
@@ -2063,7 +2063,7 @@ async function downloadCSV() {
 // ADMIN
 // ═══════════════════════════════════════════════════════
 async function loadAdminUsers() {
-  let query = supabase.from('profiles').select('*').order('station_code').order('created_at');
+  let query = sb.from('profiles').select('*').order('station_code').order('created_at');
   
   // Superusers see all users, admins see only their station
   if (currentProfile.role !== 'superuser') {
@@ -2097,14 +2097,14 @@ async function loadAdminUsers() {
 }
 
 async function approveUser(userId) {
-  await supabase.from('profiles').update({ is_approved: true }).eq('id', userId);
+  await sb.from('profiles').update({ is_approved: true }).eq('id', userId);
   showToast('User approved.');
   loadAdminUsers();
 }
 
 async function toggleRole(userId, currentRole) {
   const newRole = currentRole === 'admin' ? 'engineer' : 'admin';
-  await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+  await sb.from('profiles').update({ role: newRole }).eq('id', userId);
   showToast(`Role updated to ${newRole}.`);
   loadAdminUsers();
 }
@@ -2113,7 +2113,7 @@ async function toggleSuperuser(userId, currentRole) {
   const newRole = currentRole === 'superuser' ? 'engineer' : 'superuser';
   const updates = { role: newRole };
   if (newRole === 'superuser') updates.station_code = 'ALL';
-  await supabase.from('profiles').update(updates).eq('id', userId);
+  await sb.from('profiles').update(updates).eq('id', userId);
   showToast(`Role updated to ${newRole}.`);
   loadAdminUsers();
 }
@@ -2171,7 +2171,7 @@ async function updateBaseline(id) {
   const val = parseFloat(input.value);
   if (isNaN(val)) { showToast('Invalid value.', 'error'); return; }
 
-  await supabase.from('baselines').update({ baseline_value: val, set_by: currentUser.id, set_at: new Date().toISOString() }).eq('id', id);
+  await sb.from('baselines').update({ baseline_value: val, set_by: currentUser.id, set_at: new Date().toISOString() }).eq('id', id);
   showToast('Baseline updated.');
   await loadAllBaselines();
 }
@@ -2203,7 +2203,7 @@ function showStationDetail(code) {
 // STARTUP
 // ═══════════════════════════════════════════════════════
 (async () => {
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if (session?.user) {
     await initApp(session.user);
   }
