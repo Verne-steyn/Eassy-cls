@@ -736,8 +736,8 @@ body {
       <p>Cable Landing Station Maintenance</p>
     </div>
     <div class="auth-tabs">
-      <button class="auth-tab active" onclick="showAuthForm('login')">Sign In</button>
-      <button class="auth-tab" onclick="showAuthForm('register')">Register</button>
+      <button class="auth-tab active" onclick="showAuthForm('login', this)">Sign In</button>
+      <button class="auth-tab" onclick="showAuthForm('register', this)">Register</button>
     </div>
     <div class="auth-error" id="auth-error"></div>
     <div class="auth-success" id="auth-success"></div>
@@ -937,7 +937,7 @@ body {
 // CONFIGURATION — UPDATE THESE TWO VALUES
 // ═══════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://wpblebjftxcdfrwwguti.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE'; // Replace with your anon key from Supabase > Settings > API
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmxlYmpmdHhjZGZyd3dndXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Njg3NTAsImV4cCI6MjA4OTU0NDc1MH0.oaBljcLPFa3JPLp_e-2FgCcylwAOPAdHpkzGctOwfo0';
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -1345,9 +1345,9 @@ let complianceChart = null;
 // ═══════════════════════════════════════════════════════
 // AUTH FUNCTIONS
 // ═══════════════════════════════════════════════════════
-function showAuthForm(form) {
+function showAuthForm(form, btn) {
   document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
+  if (btn) btn.classList.add('active');
   document.getElementById('login-form').style.display = form === 'login' ? 'block' : 'none';
   document.getElementById('register-form').style.display = form === 'register' ? 'block' : 'none';
   document.getElementById('auth-error').style.display = 'none';
