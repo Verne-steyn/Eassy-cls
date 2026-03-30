@@ -878,7 +878,7 @@ body {
 
     <!-- ── REPORTS PAGE ── -->
     <div class="page" id="page-reports">
-      <div class="card">
+      <div class="card" style="margin-bottom:24px">
         <div class="card-header">
           <div class="card-title">Reports & Downloads</div>
         </div>
@@ -898,12 +898,31 @@ body {
                 <option value="six_monthly">6-Monthly</option>
                 <option value="opportunity">Opportunity</option>
               </select>
+              <select id="report-person" class="form-select" style="width:auto">
+                <option value="">All People</option>
+              </select>
               <input type="month" id="report-month" class="form-input" style="width:auto">
               <button class="btn btn-primary btn-sm" onclick="generateReport()">Generate Report</button>
               <button class="btn btn-secondary btn-sm" onclick="downloadCSV()">Download CSV</button>
             </div>
           </div>
           <div id="report-output" style="overflow-x:auto"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Performance Report — By Person</div>
+          <button class="btn btn-primary btn-sm" onclick="generatePerformanceReport()">Generate</button>
+        </div>
+        <div class="card-body">
+          <div class="report-filters" style="margin-bottom:16px">
+            <select id="perf-station" class="form-select" style="width:auto">
+              <option value="">All Stations</option>
+            </select>
+            <input type="month" id="perf-month" class="form-input" style="width:auto">
+          </div>
+          <div id="perf-output" style="overflow-x:auto"></div>
         </div>
       </div>
     </div>
@@ -1420,7 +1439,7 @@ async function initApp(user) {
   }
 
   // Populate station selects
-  const selects = ['pfe-station-select', 'report-station'];
+  const selects = ['pfe-station-select', 'report-station', 'perf-station'];
   selects.forEach(id => {
     const sel = document.getElementById(id);
     if (sel && sel.options.length <= 1) {
@@ -1432,7 +1451,17 @@ async function initApp(user) {
 
   // Set default report month
   const now = new Date();
-  document.getElementById('report-month').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const monthVal = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('report-month').value = monthVal;
+  document.getElementById('perf-month').value = monthVal;
+
+  // Populate "Performed By" dropdown from all profiles
+  const { data: allProfiles } = await sb.from('profiles').select('full_name').order('full_name');
+  const personSel = document.getElementById('report-person');
+  if (personSel && allProfiles) {
+    const names = [...new Set(allProfiles.map(p => p.full_name).filter(n => n))];
+    names.forEach(n => personSel.add(new Option(n, n)));
+  }
 
   // Load baselines
   await loadAllBaselines();
@@ -1663,6 +1692,18 @@ async function submitRoutine(routineType) {
       showToast(`PFE Polarity mismatch — PU1 is ${pol1} but PU2 is ${pol2}. Polarity must be the same on both PUs.`, 'error');
       const i1 = document.getElementById('input-daily_equipment-pfe_pol_pu1');
       const i2 = document.getElementById('input-daily_equipment-pfe_pol_pu2');
+      if (i1) i1.classList.add('variance-flag');
+      if (i2) i2.classList.add('variance-flag');
+      return;
+    }
+
+    // PFE Earth in use PU1 and PU2 must match
+    const earth1 = data.pfe_earth_pu1;
+    const earth2 = data.pfe_earth_pu2;
+    if (earth1 && earth2 && earth1 !== earth2) {
+      showToast(`PFE Earth in use mismatch — PU1 is ${earth1} but PU2 is ${earth2}. Earth in use must be the same on both PUs.`, 'error');
+      const i1 = document.getElementById('input-daily_equipment-pfe_earth_pu1');
+      const i2 = document.getElementById('input-daily_equipment-pfe_earth_pu2');
       if (i1) i1.classList.add('variance-flag');
       if (i2) i2.classList.add('variance-flag');
       return;
@@ -2034,6 +2075,7 @@ document.getElementById('pfe-chart-controls')?.addEventListener('click', e => {
 async function generateReport() {
   const station = document.getElementById('report-station').value;
   const type = document.getElementById('report-type').value;
+  const person = document.getElementById('report-person').value;
   const month = document.getElementById('report-month').value;
 
   let query = sb
@@ -2045,6 +2087,7 @@ async function generateReport() {
 
   if (station) query = query.eq('station_code', station);
   if (type) query = query.eq('routine_type', type);
+  if (person) query = query.eq('submitted_by_name', person);
 
   const { data: subs } = await query;
   const output = document.getElementById('report-output');
@@ -2171,6 +2214,184 @@ async function downloadCSV() {
   a.click();
   URL.revokeObjectURL(url);
   showToast('CSV downloaded.');
+}
+
+// ═══════════════════════════════════════════════════════
+// PERFORMANCE REPORT
+// ═══════════════════════════════════════════════════════
+async function generatePerformanceReport() {
+  const station = document.getElementById('perf-station').value;
+  const month = document.getElementById('perf-month').value;
+
+  let query = sb
+    .from('submissions')
+    .select('*')
+    .like('period_key', `${month}%`)
+    .order('created_at', { ascending: true });
+
+  if (station) query = query.eq('station_code', station);
+
+  const { data: subs } = await query;
+  const output = document.getElementById('perf-output');
+
+  if (!subs || subs.length === 0) {
+    output.innerHTML = '<p style="color:var(--slate-500)">No data found for the selected period.</p>';
+    return;
+  }
+
+  const ROUTINE_ORDER = ['daily_facility','daily_equipment','weekly','monthly','monthly_pfe','six_monthly','opportunity'];
+  const ROUTINE_LABELS = {
+    daily_facility:'Daily Facility', daily_equipment:'Daily Equipment', weekly:'Weekly',
+    monthly:'Monthly', monthly_pfe:'Monthly PFE', six_monthly:'6-Monthly', opportunity:'Opportunity'
+  };
+
+  // Group by person
+  const people = {};
+  subs.forEach(sub => {
+    const name = sub.submitted_by_name;
+    if (!people[name]) {
+      people[name] = {
+        station: sub.station_code,
+        submissions: [],
+        totalRoutines: 0,
+        completeRoutines: 0,
+        totalItems: 0,
+        filledItems: 0,
+        inOrderCount: 0,
+        outOfOrderCount: 0,
+        avgCompletionTime: [],
+        routineBreakdown: {},
+      };
+    }
+    people[name].submissions.push(sub);
+  });
+
+  // Calculate metrics per person
+  Object.entries(people).forEach(([name, p]) => {
+    // Group submissions by day for order checking
+    const dayGroups = {};
+    p.submissions.forEach(sub => {
+      const dateStr = sub.period_key.substring(0, 10);
+      const gKey = `${sub.station_code}:${dateStr}`;
+      if (!dayGroups[gKey]) dayGroups[gKey] = [];
+      dayGroups[gKey].push(sub);
+    });
+
+    // Check order per day
+    Object.values(dayGroups).forEach(groupSubs => {
+      groupSubs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+      let inOrder = true;
+      for (let i = 1; i < groupSubs.length; i++) {
+        if (ROUTINE_ORDER.indexOf(groupSubs[i].routine_type) < ROUTINE_ORDER.indexOf(groupSubs[i-1].routine_type)) {
+          inOrder = false; break;
+        }
+      }
+      if (inOrder) p.inOrderCount++; else p.outOfOrderCount++;
+    });
+
+    p.submissions.forEach(sub => {
+      const d = sub.data || {};
+      const routineDef = ROUTINES[sub.routine_type];
+      let totalExpected = 0;
+      if (routineDef) routineDef.sections.forEach(s => { totalExpected += s.items.length; });
+      const total = totalExpected || Object.keys(d).length || 1;
+      const filled = Object.values(d).filter(v => v !== '' && v !== null && v !== undefined).length;
+      const pct = Math.round((filled / total) * 100);
+
+      p.totalRoutines++;
+      if (pct >= 95) p.completeRoutines++;
+      p.totalItems += total;
+      p.filledItems += filled;
+
+      // Breakdown by type
+      const rt = sub.routine_type;
+      if (!p.routineBreakdown[rt]) p.routineBreakdown[rt] = { count: 0, complete: 0 };
+      p.routineBreakdown[rt].count++;
+      if (pct >= 95) p.routineBreakdown[rt].complete++;
+    });
+  });
+
+  // Calculate expected routines per station for the month
+  const yr = parseInt(month.split('-')[0]);
+  const mo = parseInt(month.split('-')[1]);
+  function workDaysInMonth(stationCode) {
+    const st = STATIONS.find(s => s.code === stationCode);
+    if (!st) return 20;
+    const days = new Date(yr, mo, 0).getDate();
+    let count = 0;
+    for (let d = 1; d <= days; d++) {
+      if (st.workDays.includes(new Date(yr, mo - 1, d).getDay())) count++;
+    }
+    return count;
+  }
+
+  // Build the performance table
+  let html = `<table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+    <thead>
+      <tr style="background:var(--ocean-50)">
+        <th style="padding:8px 12px;text-align:left;border:1px solid var(--slate-200)">Person</th>
+        <th style="padding:8px 12px;text-align:left;border:1px solid var(--slate-200)">Station</th>
+        <th style="padding:8px 12px;text-align:center;border:1px solid var(--slate-200)">Routines Done</th>
+        <th style="padding:8px 12px;text-align:center;border:1px solid var(--slate-200)">Completion Rate</th>
+        <th style="padding:8px 12px;text-align:center;border:1px solid var(--slate-200)">Items Accuracy</th>
+        <th style="padding:8px 12px;text-align:center;border:1px solid var(--slate-200)">Fully Complete</th>
+        <th style="padding:8px 12px;text-align:center;border:1px solid var(--slate-200)">Order Compliance</th>
+        <th style="padding:8px 12px;text-align:center;border:1px solid var(--slate-200)">Overall Score</th>
+      </tr>
+    </thead><tbody>`;
+
+  Object.entries(people).sort((a,b) => a[0].localeCompare(b[0])).forEach(([name, p]) => {
+    const wd = workDaysInMonth(p.station);
+    const expectedDaily = wd * 2; // daily facility + daily equipment
+    const completionRate = p.totalRoutines > 0 ? Math.round((p.completeRoutines / p.totalRoutines) * 100) : 0;
+    const itemAccuracy = p.totalItems > 0 ? Math.round((p.filledItems / p.totalItems) * 100) : 0;
+    const totalDays = p.inOrderCount + p.outOfOrderCount;
+    const orderCompliance = totalDays > 0 ? Math.round((p.inOrderCount / totalDays) * 100) : 100;
+
+    // Overall score: weighted average
+    // 40% completion rate + 30% item accuracy + 30% order compliance
+    const overallScore = Math.round(completionRate * 0.4 + itemAccuracy * 0.3 + orderCompliance * 0.3);
+
+    const scoreBadge = overallScore >= 90 ? 'badge-green' : overallScore >= 70 ? 'badge-amber' : 'badge-red';
+    const scoreLabel = overallScore >= 90 ? 'Excellent' : overallScore >= 70 ? 'Good' : overallScore >= 50 ? 'Needs Improvement' : 'Poor';
+    const compBadge = completionRate >= 90 ? 'badge-green' : completionRate >= 70 ? 'badge-amber' : 'badge-red';
+    const accBadge = itemAccuracy >= 95 ? 'badge-green' : itemAccuracy >= 80 ? 'badge-amber' : 'badge-red';
+    const ordBadge = orderCompliance >= 90 ? 'badge-green' : orderCompliance >= 70 ? 'badge-amber' : 'badge-red';
+
+    // Build breakdown tooltip
+    let breakdown = Object.entries(p.routineBreakdown).map(([rt, v]) =>
+      `${ROUTINE_LABELS[rt] || rt}: ${v.complete}/${v.count}`
+    ).join(', ');
+
+    html += `<tr>
+      <td style="padding:8px 12px;border:1px solid var(--slate-200);font-weight:600">${name}</td>
+      <td style="padding:8px 12px;border:1px solid var(--slate-200)">${p.station}</td>
+      <td style="padding:8px 12px;border:1px solid var(--slate-200);text-align:center" title="${breakdown}">${p.totalRoutines}</td>
+      <td style="padding:8px 12px;border:1px solid var(--slate-200);text-align:center"><span class="badge ${compBadge}">${completionRate}%</span></td>
+      <td style="padding:8px 12px;border:1px solid var(--slate-200);text-align:center"><span class="badge ${accBadge}">${itemAccuracy}%</span></td>
+      <td style="padding:8px 12px;border:1px solid var(--slate-200);text-align:center">${p.completeRoutines}/${p.totalRoutines}</td>
+      <td style="padding:8px 12px;border:1px solid var(--slate-200);text-align:center"><span class="badge ${ordBadge}">${orderCompliance}%</span></td>
+      <td style="padding:8px 12px;border:1px solid var(--slate-200);text-align:center"><span class="badge ${scoreBadge}">${overallScore}% ${scoreLabel}</span></td>
+    </tr>`;
+  });
+
+  html += '</tbody></table>';
+
+  // Add legend
+  html += `<div style="margin-top:16px;font-size:0.78rem;color:var(--slate-500);line-height:1.8">
+    <strong>Metrics explained:</strong><br>
+    <strong>Routines Done</strong> — Total number of routine submissions in the period (hover for breakdown by type)<br>
+    <strong>Completion Rate</strong> — Percentage of routines where 95%+ of items were filled in<br>
+    <strong>Items Accuracy</strong> — Percentage of all individual routine items completed across all submissions<br>
+    <strong>Fully Complete</strong> — Count of routines scored as complete vs total submitted<br>
+    <strong>Order Compliance</strong> — Percentage of days where routines were done in the correct chronological order (Daily Facility → Daily Equipment → Weekly → Monthly etc.)<br>
+    <strong>Overall Score</strong> — Weighted score: 40% Completion Rate + 30% Items Accuracy + 30% Order Compliance<br>
+    <span class="badge badge-green" style="margin-right:4px">Excellent ≥90%</span>
+    <span class="badge badge-amber" style="margin-right:4px">Good ≥70%</span>
+    <span class="badge badge-red">Needs Improvement &lt;70%</span>
+  </div>`;
+
+  output.innerHTML = html;
 }
 
 // ═══════════════════════════════════════════════════════
