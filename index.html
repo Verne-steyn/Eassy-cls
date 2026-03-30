@@ -968,7 +968,21 @@ const STATIONS = [
 ];
 
 // Blocked email domains
-const BLOCKED_DOMAINS = ['gmail.com','yahoo.com','hotmail.com','outlook.com','aol.com','icloud.com','mail.com','protonmail.com','zoho.com','yandex.com','live.com','msn.com'];
+const BLOCKED_DOMAINS = ['gmail.com','yahoo.com','hotmail.com','aol.com','icloud.com','mail.com','protonmail.com','zoho.com','yandex.com','live.com','msn.com'];
+
+// Pre-approved station administrators — auto-approved on first login
+const ADMIN_WHITELIST = {
+  'assad.comorescables@outlook.com': 'MRN',
+  'johary.ramboa@telma.mg': 'TLR',
+  'farah.abdi@djibtel.dj': 'DBT',
+  'abdelhameeda@sudatel.sd': 'PSD',
+  'girde@dalkomsomalia.com': 'MGD',
+  'totieno@telkom.co.ke': 'MBS',
+  'waynee@openserve.co.za': 'MNZ',
+  'nhiuane@tmcel.mz': 'MPT',
+  'omar.said@yas.co.tz': 'DES',
+  'verne.steyn@wiocc.net': 'MNZ',
+};
 
 // ═══════════════════════════════════════════════════════
 // ROUTINE DEFINITIONS
@@ -1447,6 +1461,19 @@ async function initApp(user) {
   if (!profile) {
     showAuthError('Profile not found. Please contact your administrator.');
     return;
+  }
+
+  // Auto-approve whitelisted admin emails
+  if (!profile.is_approved && ADMIN_WHITELIST[profile.email.toLowerCase()]) {
+    const stationCode = ADMIN_WHITELIST[profile.email.toLowerCase()];
+    await sb.from('profiles').update({ 
+      is_approved: true, 
+      role: 'admin', 
+      station_code: stationCode 
+    }).eq('id', user.id);
+    profile.is_approved = true;
+    profile.role = 'admin';
+    profile.station_code = stationCode;
   }
 
   if (!profile.is_approved) {
