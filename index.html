@@ -1573,6 +1573,17 @@ function buildInput(item, routineType) {
 // ═══════════════════════════════════════════════════════
 // SUBMIT & LOAD ROUTINES
 // ═══════════════════════════════════════════════════════
+async function getPreviousSubmission(routineType) {
+  const { data } = await sb
+    .from('submissions')
+    .select('data, period_key')
+    .eq('station_code', currentProfile.station_code)
+    .eq('routine_type', routineType)
+    .order('period_key', { ascending: false })
+    .limit(1);
+  return data && data.length > 0 ? data[0] : null;
+}
+
 async function submitRoutine(routineType) {
   const routine = ROUTINES[routineType];
   const periodKey = getPeriodKey(routine.frequency);
@@ -1590,6 +1601,73 @@ async function submitRoutine(routineType) {
 
   // Check variance against baselines
   checkVariance(routineType, data);
+
+  // ── VALIDATION RULES ──
+
+  // Daily Facility: Genset hours must not decrease
+  if (routineType === 'daily_facility') {
+    const prevSub = await getPreviousSubmission('daily_facility');
+    if (prevSub) {
+      const prev = prevSub.data || {};
+      for (const key of ['g1_hours', 'g2_hours']) {
+        const current = parseFloat(data[key]);
+        const previous = parseFloat(prev[key]);
+        if (!isNaN(current) && !isNaN(previous) && current < previous) {
+          const label = key === 'g1_hours' ? 'Genset 1' : 'Genset 2';
+          showToast(`${label} Hours run (${current}) cannot be less than previous value (${previous}).`, 'error');
+          const input = document.getElementById(`input-${routineType}-${key}`);
+          if (input) { input.classList.add('variance-flag'); input.focus(); }
+          return;
+        }
+      }
+    }
+  }
+
+  // Daily Equipment: PFE PU1 vs PU2 voltage variance must be ≤ 5%
+  if (routineType === 'daily_equipment') {
+    const vPU1 = parseFloat(data.pfe_v_pu1);
+    const vPU2 = parseFloat(data.pfe_v_pu2);
+    if (!isNaN(vPU1) && !isNaN(vPU2) && vPU1 > 0 && vPU2 > 0) {
+      const avg = (vPU1 + vPU2) / 2;
+      const diff = Math.abs(vPU1 - vPU2) / avg;
+      if (diff > 0.05) {
+        showToast(`PFE Voltage PU1 (${vPU1}) and PU2 (${vPU2}) differ by ${(diff*100).toFixed(1)}% — exceeds 5% limit. Please verify readings.`, 'error');
+        const i1 = document.getElementById('input-daily_equipment-pfe_v_pu1');
+        const i2 = document.getElementById('input-daily_equipment-pfe_v_pu2');
+        if (i1) i1.classList.add('variance-flag');
+        if (i2) i2.classList.add('variance-flag');
+        return;
+      }
+    }
+
+    // PFE PU1 vs PU2 current variance must be ≤ 5%
+    const iPU1 = parseFloat(data.pfe_i_pu1);
+    const iPU2 = parseFloat(data.pfe_i_pu2);
+    if (!isNaN(iPU1) && !isNaN(iPU2) && iPU1 > 0 && iPU2 > 0) {
+      const avg = (iPU1 + iPU2) / 2;
+      const diff = Math.abs(iPU1 - iPU2) / avg;
+      if (diff > 0.05) {
+        showToast(`PFE Current PU1 (${iPU1}) and PU2 (${iPU2}) differ by ${(diff*100).toFixed(1)}% — exceeds 5% limit. Please verify readings.`, 'error');
+        const i1 = document.getElementById('input-daily_equipment-pfe_i_pu1');
+        const i2 = document.getElementById('input-daily_equipment-pfe_i_pu2');
+        if (i1) i1.classList.add('variance-flag');
+        if (i2) i2.classList.add('variance-flag');
+        return;
+      }
+    }
+
+    // PFE Polarity PU1 and PU2 must match
+    const pol1 = data.pfe_pol_pu1;
+    const pol2 = data.pfe_pol_pu2;
+    if (pol1 && pol2 && pol1 !== pol2) {
+      showToast(`PFE Polarity mismatch — PU1 is ${pol1} but PU2 is ${pol2}. Polarity must be the same on both PUs.`, 'error');
+      const i1 = document.getElementById('input-daily_equipment-pfe_pol_pu1');
+      const i2 = document.getElementById('input-daily_equipment-pfe_pol_pu2');
+      if (i1) i1.classList.add('variance-flag');
+      if (i2) i2.classList.add('variance-flag');
+      return;
+    }
+  }
 
   const payload = {
     station_code: currentProfile.station_code,
@@ -1962,7 +2040,8 @@ async function generateReport() {
     .from('submissions')
     .select('*')
     .like('period_key', `${month}%`)
-    .order('period_key');
+    .order('station_code')
+    .order('created_at', { ascending: true });
 
   if (station) query = query.eq('station_code', station);
   if (type) query = query.eq('routine_type', type);
@@ -1975,32 +2054,85 @@ async function generateReport() {
     return;
   }
 
+  // Define the correct chronological order of routines
+  const ROUTINE_ORDER = ['daily_facility','daily_equipment','weekly','monthly','monthly_pfe','six_monthly','opportunity'];
+  const ROUTINE_LABELS = {
+    daily_facility:'Daily Facility', daily_equipment:'Daily Equipment', weekly:'Weekly',
+    monthly:'Monthly', monthly_pfe:'Monthly PFE', six_monthly:'6-Monthly', opportunity:'Opportunity'
+  };
+
+  // Group submissions by station + date to check chronological order
+  const dayGroups = {};
+  subs.forEach(sub => {
+    const dateStr = sub.period_key.substring(0, 10); // get date part
+    const gKey = `${sub.station_code}:${dateStr}`;
+    if (!dayGroups[gKey]) dayGroups[gKey] = [];
+    dayGroups[gKey].push(sub);
+  });
+
+  // Check chronological order within each day group
+  const orderStatus = {};
+  Object.entries(dayGroups).forEach(([gKey, groupSubs]) => {
+    // Sort by created_at
+    groupSubs.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    let inOrder = true;
+    for (let i = 1; i < groupSubs.length; i++) {
+      const prevIdx = ROUTINE_ORDER.indexOf(groupSubs[i-1].routine_type);
+      const currIdx = ROUTINE_ORDER.indexOf(groupSubs[i].routine_type);
+      if (currIdx < prevIdx) { inOrder = false; break; }
+    }
+    groupSubs.forEach(sub => { orderStatus[sub.id] = inOrder; });
+  });
+
   let html = `<table style="width:100%;border-collapse:collapse;font-size:0.82rem">
     <thead>
       <tr style="background:var(--ocean-50)">
-        <th style="padding:8px 12px;text-align:left;border:1px solid var(--slate-200)">Date</th>
+        <th style="padding:8px 12px;text-align:left;border:1px solid var(--slate-200)">Date Submitted</th>
         <th style="padding:8px 12px;text-align:left;border:1px solid var(--slate-200)">Station</th>
-        <th style="padding:8px 12px;text-align:left;border:1px solid var(--slate-200)">Type</th>
-        <th style="padding:8px 12px;text-align:left;border:1px solid var(--slate-200)">Submitted By</th>
-        <th style="padding:8px 12px;text-align:left;border:1px solid var(--slate-200)">Items Filled</th>
-        <th style="padding:8px 12px;text-align:left;border:1px solid var(--slate-200)">Status</th>
+        <th style="padding:8px 12px;text-align:left;border:1px solid var(--slate-200)">Routine Type</th>
+        <th style="padding:8px 12px;text-align:left;border:1px solid var(--slate-200)">Performed By</th>
+        <th style="padding:8px 12px;text-align:left;border:1px solid var(--slate-200)">Items</th>
+        <th style="padding:8px 12px;text-align:left;border:1px solid var(--slate-200)">Completion</th>
+        <th style="padding:8px 12px;text-align:left;border:1px solid var(--slate-200)">Order</th>
       </tr>
     </thead><tbody>`;
 
   subs.forEach(sub => {
     const d = sub.data || {};
     const filled = Object.values(d).filter(v => v !== '' && v !== null && v !== undefined).length;
-    const total = Object.keys(d).length || 1;
+    const routineDef = ROUTINES[sub.routine_type];
+    let totalExpected = 0;
+    if (routineDef) {
+      routineDef.sections.forEach(s => { totalExpected += s.items.length; });
+    }
+    const total = totalExpected || Object.keys(d).length || 1;
     const pct = Math.round((filled / total) * 100);
-    const badge = pct >= 95 ? 'badge-green' : pct >= 50 ? 'badge-amber' : 'badge-red';
-    const label = pct >= 95 ? 'Complete' : pct >= 50 ? 'Partial' : 'Incomplete';
+
+    // Completion status
+    let statusBadge, statusLabel;
+    if (pct >= 100) { statusBadge = 'badge-green'; statusLabel = 'Complete'; }
+    else if (pct >= 95) { statusBadge = 'badge-green'; statusLabel = `${pct}% Complete`; }
+    else if (pct >= 50) { statusBadge = 'badge-amber'; statusLabel = `Partial ${pct}%`; }
+    else { statusBadge = 'badge-red'; statusLabel = `Incomplete ${pct}%`; }
+
+    // Chronological order check
+    const inOrder = orderStatus[sub.id];
+    const orderBadge = inOrder ? 'badge-green' : 'badge-red';
+    const orderLabel = inOrder ? 'In order' : 'Out of order';
+
+    // Format date with time
+    const dt = new Date(sub.created_at);
+    const dateStr = dt.toLocaleDateString('en-ZA', {year:'numeric',month:'2-digit',day:'2-digit'});
+    const timeStr = dt.toLocaleTimeString('en-ZA', {hour:'2-digit',minute:'2-digit'});
+
     html += `<tr>
-      <td style="padding:8px 12px;border:1px solid var(--slate-200)">${sub.period_key}</td>
+      <td style="padding:8px 12px;border:1px solid var(--slate-200)">${dateStr} ${timeStr}</td>
       <td style="padding:8px 12px;border:1px solid var(--slate-200)">${sub.station_code}</td>
-      <td style="padding:8px 12px;border:1px solid var(--slate-200)">${sub.routine_type.replace(/_/g,' ')}</td>
-      <td style="padding:8px 12px;border:1px solid var(--slate-200)">${sub.submitted_by_name}</td>
+      <td style="padding:8px 12px;border:1px solid var(--slate-200)">${ROUTINE_LABELS[sub.routine_type] || sub.routine_type}</td>
+      <td style="padding:8px 12px;border:1px solid var(--slate-200);font-weight:500">${sub.submitted_by_name}</td>
       <td style="padding:8px 12px;border:1px solid var(--slate-200)">${filled}/${total}</td>
-      <td style="padding:8px 12px;border:1px solid var(--slate-200)"><span class="badge ${badge}">${label} ${pct}%</span></td>
+      <td style="padding:8px 12px;border:1px solid var(--slate-200)"><span class="badge ${statusBadge}">${statusLabel}</span></td>
+      <td style="padding:8px 12px;border:1px solid var(--slate-200)"><span class="badge ${orderBadge}">${orderLabel}</span></td>
     </tr>`;
   });
 
