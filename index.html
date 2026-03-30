@@ -1164,6 +1164,11 @@ const ROUTINES = {
       { name:'Equipment', items:[
         {key:'we_sys_earth',name:'Measurement of system earth resistance (Ohm)',desc:'Measure the system earth to ground resistance in ohm.',type:'number'},
       ]},
+      { name:'Fronthaul', items:[
+        {key:'wfh_route',name:'Visual inspection of route for any works, excavations or risks',desc:'Visually inspect the Fronthaul route, looking for any signs of risks due to excavation, erosion, collapsing, water etc.',type:'yesno'},
+        {key:'wfh_beach',name:'Visual inspection of Beach joint',desc:'Physical inspection of beach joint.',type:'yesno'},
+        {key:'wfh_land',name:'Visual inspection of land joints',desc:'Physical inspection of land joints.',type:'yesno'},
+      ]},
     ]
   },
 
@@ -1257,8 +1262,6 @@ const ROUTINES = {
         {key:'sm_power_fail',name:'Carry out Mains Power Failure Test',desc:'Carry out mains power failure test.',type:'yesno'},
       ]},
       { name:'Fronthaul', items:[
-        {key:'sm_beach',name:'Visual inspection of Beach joint',desc:'Physical inspection inside and outside BMH.',type:'yesno'},
-        {key:'sm_land',name:'Visual inspection of land joint or Intermediate manholes',desc:'Physical inspection inside and outside of IMs.',type:'yesno'},
         {key:'sm_cable_charts',name:'Check validity of Cable Awareness charts',desc:'Check accuracy of information and update Awareness charts.',type:'yesno'},
       ]},
     ]
