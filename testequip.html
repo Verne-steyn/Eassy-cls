@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EASSy CLS — Test Equipment</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy-mid: #112240;
+    --navy-light: #1a3357;
+    --teal: #00b4d8;
+    --teal-dark: #0077a8;
+    --amber: #f59e0b;
+    --green: #10b981;
+    --green-dark: #059669;
+    --red: #ef4444;
+    --white: #f0f4f8;
+    --muted: #8fa3bc;
+    --card-bg: #112240;
+    --border: #1e3a5f;
+    --input-bg: #0d1e38;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--navy);
+    color: var(--white);
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(16,185,129,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(16,185,129,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none; z-index: 0;
+  }
+
+  .page-header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,22,40,0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex; align-items: center; gap: 16px;
+    height: 60px;
+  }
+
+  .back-btn {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--muted); text-decoration: none;
+    font-size: 13px; font-weight: 500;
+    transition: color 0.2s;
+  }
+  .back-btn:hover { color: var(--green); }
+
+  .header-sep { width: 1px; height: 24px; background: var(--border); }
+
+  .header-icon {
+    width: 32px; height: 32px;
+    background: rgba(16,185,129,0.12);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .header-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800; font-size: 18px;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--green);
+  }
+
+  .header-spacer { flex: 1; }
+
+  .user-pill {
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.2);
+    border-radius: 20px; padding: 4px 12px;
+    font-size: 12px; color: var(--green); font-weight: 500;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 8px; border: none;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; text-decoration: none;
+  }
+  .btn-green { background: var(--green); color: white; }
+  .btn-green:hover { background: var(--green-dark); }
+  .btn-outline { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--green); color: var(--green); }
+  .btn-ghost { background: transparent; color: var(--muted); border: none; }
+  .btn-ghost:hover { color: var(--white); }
+  .btn-red { background: var(--red); color: white; }
+  .btn-red:hover { background: #dc2626; }
+  .btn-amber { background: var(--amber); color: var(--navy); }
+  .btn-amber:hover { background: #d97706; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* Auth overlay */
+  .auth-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(10,22,40,0.96);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .auth-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px; padding: 40px;
+    width: 380px; max-width: 92vw;
+  }
+
+  .auth-logo { text-align: center; margin-bottom: 28px; }
+  .auth-logo .badge {
+    display: inline-block; width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--green-dark), var(--green));
+    border-radius: 14px; line-height: 56px;
+    font-size: 26px; margin-bottom: 12px;
+  }
+  .auth-logo h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px; font-weight: 800;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--green);
+  }
+  .auth-logo p { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block; font-size: 11px; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  .form-group input, .form-group select {
+    width: 100%; background: var(--input-bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; color: var(--white);
+    font-family: 'Barlow', sans-serif; font-size: 14px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--green); }
+  .form-group select option { background: var(--navy-mid); }
+
+  .auth-msg { font-size: 12px; text-align: center; margin-top: 12px; min-height: 18px; color: var(--red); }
+  .auth-msg.success { color: var(--green); }
+
+  /* Content */
+  .content {
+    position: relative; z-index: 10;
+    max-width: 1400px; margin: 0 auto; padding: 32px;
+  }
+
+  .station-bar {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 20px;
+    margin-bottom: 28px; flex-wrap: wrap;
+  }
+
+  .station-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
+  }
+
+  .station-chip {
+    padding: 6px 14px; border-radius: 20px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px; font-weight: 600; letter-spacing: 0.5px;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .station-chip:hover { border-color: var(--green); color: var(--green); }
+  .station-chip.active { background: var(--green); border-color: var(--green); color: white; }
+
+  /* Stats */
+  .stats-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  @media (max-width: 700px) { .stats-strip { grid-template-columns: repeat(2, 1fr); } .content { padding: 16px; } }
+
+  .stat-card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 20px;
+    position: relative; overflow: hidden;
+  }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .stat-card.green::before { background: var(--green); }
+  .stat-card.amber::before { background: var(--amber); }
+  .stat-card.red::before { background: var(--red); }
+  .stat-card.blue::before { background: var(--teal); }
+
+  .stat-label { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .stat-value { font-family: 'Barlow Condensed', sans-serif; font-size: 32px; font-weight: 800; line-height: 1; }
+  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.amber .stat-value { color: var(--amber); }
+  .stat-card.red .stat-value { color: var(--red); }
+  .stat-card.blue .stat-value { color: var(--teal); }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .toolbar-title { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; flex: 1; }
+
+  /* Equipment cards — rich layout */
+  .equip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+
+  .equip-card {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .equip-card:hover { border-color: rgba(16,185,129,0.3); }
+
+  .equip-card-top {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-start; gap: 14px;
+  }
+
+  .equip-icon-circle {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: rgba(16,185,129,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; flex-shrink: 0;
+  }
+
+  .equip-meta { flex: 1; min-width: 0; }
+
+  .equip-no {
+    font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 2px;
+  }
+
+  .equip-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 16px; font-weight: 700;
+    color: var(--white); line-height: 1.2;
+  }
+
+  .equip-model { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .equip-status-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 4px;
+  }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .dot-red { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .dot-grey { background: var(--muted); }
+
+  .equip-card-body { padding: 14px 20px; }
+
+  .equip-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; font-size: 12px;
+  }
+
+  .equip-row-label { color: var(--muted); font-weight: 500; }
+  .equip-row-val { color: var(--white); font-weight: 600; text-align: right; }
+
+  .calib-bar-bg {
+    height: 4px; background: var(--border); border-radius: 4px;
+    margin: 8px 0 14px; overflow: hidden;
+  }
+
+  .calib-bar-fill {
+    height: 100%; border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+
+  .calib-ok { background: var(--green); }
+  .calib-warn { background: var(--amber); }
+  .calib-overdue { background: var(--red); }
+
+  .calib-tag {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+  }
+  .tag-ok { background: rgba(16,185,129,0.12); color: var(--green); }
+  .tag-warn { background: rgba(245,158,11,0.12); color: var(--amber); }
+  .tag-overdue { background: rgba(239,68,68,0.12); color: var(--red); }
+  .tag-unknown { background: rgba(143,163,188,0.12); color: var(--muted); }
+
+  .equip-card-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+
+  /* Check mode card overlay */
+  .check-overlay {
+    background: rgba(16,185,129,0.04);
+    border: 1px solid rgba(16,185,129,0.2);
+    border-radius: 12px; padding: 14px;
+    margin-top: 10px; display: none;
+  }
+  .check-mode-active .check-overlay { display: block; }
+
+  .check-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .check-field-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
+  }
+
+  .check-select {
+    width: 100%; background: var(--input-bg);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 10px; color: var(--white);
+    font-size: 12px; outline: none; cursor: pointer;
+  }
+  .check-select:focus { border-color: var(--green); }
+  .check-select.pass { border-color: var(--green); color: var(--green); }
+  .check-select.fail { border-color: var(--red); color: var(--red); }
+  .check-select.na { border-color: var(--muted); color: var(--muted); }
+
+  .check-input {
+    width: 100%; background: var(--input-bg);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 10px; color: var(--white);
+    font-size: 12px; outline: none;
+  }
+  .check-input:focus { border-color: var(--green); }
+
+  /* Check banner */
+  .check-banner {
+    background: rgba(16,185,129,0.08);
+    border: 1px solid rgba(16,185,129,0.25);
+    border-radius: 12px; padding: 14px 20px;
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 12px;
+    display: none;
+  }
+  .check-banner.active { display: flex; }
+
+  /* Modals */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(10,22,40,0.9);
+    display: none; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--card-bg); border: 1px solid var(--border);
+    border-radius: 16px; padding: 32px;
+    width: 500px; max-width: 94vw;
+    max-height: 90vh; overflow-y: auto;
+  }
+
+  .modal h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--green); margin-bottom: 20px;
+  }
+
+  .form-row { margin-bottom: 16px; }
+  .form-row label {
+    display: block; font-size: 11px; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  .form-row input, .form-row select, .form-row textarea {
+    width: 100%; background: var(--input-bg);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; color: var(--white);
+    font-family: 'Barlow', sans-serif; font-size: 13px; outline: none;
+    transition: border-color 0.2s; resize: vertical;
+  }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--green); }
+  .form-row select option { background: var(--navy-mid); }
+
+  .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .full { grid-column: 1/-1; }
+
+  .checkbox-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; background: var(--input-bg);
+    border: 1px solid var(--border); border-radius: 8px; cursor: pointer;
+  }
+  .checkbox-row input[type="checkbox"] { accent-color: var(--green); width: 16px; height: 16px; }
+  .checkbox-row label { font-size: 13px; color: var(--white); cursor: pointer; margin: 0; letter-spacing: 0; text-transform: none; font-weight: 400; }
+
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border); }
+
+  /* Alerts */
+  .alert { padding: 12px 16px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+  .alert-warn { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); color: var(--amber); }
+  .alert-info { background: rgba(0,180,216,0.08); border: 1px solid rgba(0,180,216,0.2); color: var(--teal); }
+  .alert-err { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: var(--red); }
+  .alert-ok { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: var(--green); }
+
+  .loading { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 14px; }
+  .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Checks history table */
+  .checks-panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; margin-top: 24px; }
+  .panel-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border); background: rgba(16,185,129,0.04); }
+  .panel-header h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--green); flex: 1; }
+  .panel-badge { background: rgba(16,185,129,0.15); border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600; color: var(--green); }
+
+  .check-row-hist { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid rgba(30,58,95,0.5); font-size: 13px; }
+  .check-row-hist:last-child { border-bottom: none; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Auth overlay -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="badge">📡</div>
+      <h2>Test Equipment</h2>
+      <p>EASSy CLS Asset Management</p>
+    </div>
+    <div id="authLoginForm">
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="loginEmail" placeholder="your@email.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn btn-green" style="width:100%;justify-content:center;" onclick="doLogin()">Sign In</button>
+      <div class="auth-msg" id="loginMsg"></div>
+      <div style="text-align:center;margin-top:14px;">
+        <span style="font-size:12px;color:var(--muted);">No account? </span>
+        <button class="btn-ghost" style="font-size:12px;padding:0;color:var(--green);" onclick="showRegister()">Register</button>
+      </div>
+    </div>
+    <div id="authRegisterForm" class="hidden">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="regName" placeholder="Your Name">
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="regEmail" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="regPass" placeholder="Min. 6 characters">
+      </div>
+      <div class="form-group">
+        <label>Your Station</label>
+        <select id="regStation">
+          <option value="">Select station...</option>
+          <option value="MNZ">MNZ — Mtunzini</option>
+          <option value="MPT">MPT — Maputo</option>
+          <option value="DES">DES — Dar es Salaam</option>
+          <option value="MBS">MBS — Mombasa</option>
+          <option value="MGD">MGD — Mogadishu</option>
+          <option value="DBT">DBT — Djibouti</option>
+          <option value="PSD">PSD — Port Sudan</option>
+          <option value="TLR">TLR — Toliary</option>
+          <option value="MRN">MRN — Moroni</option>
+        </select>
+      </div>
+      <button class="btn btn-green" style="width:100%;justify-content:center;" onclick="doRegister()">Create Account</button>
+      <div class="auth-msg" id="regMsg"></div>
+      <div style="text-align:center;margin-top:14px;">
+        <button class="btn-ghost" style="font-size:12px;padding:0;color:var(--green);" onclick="showLogin()">← Back to Sign In</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Equipment Modal -->
+<div class="modal-overlay" id="addEquipModal">
+  <div class="modal">
+    <h3>➕ Add Test Equipment</h3>
+    <div class="form-grid-2">
+      <div class="form-row full">
+        <label>Equipment Name *</label>
+        <input type="text" id="newEquipName" placeholder="e.g. Optical Power Meter">
+      </div>
+      <div class="form-row full">
+        <label>Description / Model</label>
+        <input type="text" id="newEquipDesc" placeholder="e.g. FPM-3000">
+      </div>
+      <div class="form-row">
+        <label>Supplier / Manufacturer</label>
+        <input type="text" id="newEquipSupplier" placeholder="e.g. Exfo">
+      </div>
+      <div class="form-row">
+        <label>Serial Number</label>
+        <input type="text" id="newEquipSerial" placeholder="e.g. SN20180045">
+      </div>
+      <div class="form-row">
+        <label>Calibration Interval</label>
+        <select id="newEquipCalibInterval">
+          <option value="">Not applicable</option>
+          <option value="1 year">1 year</option>
+          <option value="2 years">2 years</option>
+          <option value="3 years">3 years</option>
+          <option value="5 years">5 years</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Last Calibration Date</label>
+        <input type="date" id="newEquipCalibDate">
+      </div>
+      <div class="form-row full">
+        <label>Redundancy Unit Available?</label>
+        <select id="newEquipRedundancy">
+          <option value="no">No — single unit only</option>
+          <option value="yes">Yes — backup unit available</option>
+          <option value="shared">Shared with another station</option>
+        </select>
+      </div>
+      <div class="form-row full">
+        <label>Has Mains Power Supply?</label>
+        <div class="checkbox-row">
+          <input type="checkbox" id="newEquipPowered" checked>
+          <label for="newEquipPowered">⚡ This equipment has a mains power cord / PSU that must be checked</label>
+        </div>
+      </div>
+      <div class="form-row full">
+        <label>Has Internal Battery?</label>
+        <div class="checkbox-row">
+          <input type="checkbox" id="newEquipBattery">
+          <label for="newEquipBattery">🔋 This equipment has an internal battery that must be checked</label>
+        </div>
+      </div>
+      <div class="form-row full">
+        <label>Notes</label>
+        <textarea id="newEquipNotes" rows="2" placeholder="Optional notes, accessories, location..."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAddEquip()">Cancel</button>
+      <button class="btn btn-green" onclick="saveNewEquip()">Add Equipment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Update Calibration Modal -->
+<div class="modal-overlay" id="calibModal">
+  <div class="modal" style="max-width:400px;">
+    <h3>📅 Update Calibration</h3>
+    <input type="hidden" id="calibEquipId">
+    <div class="form-row">
+      <label>Calibration Date</label>
+      <input type="date" id="calibDate">
+    </div>
+    <div class="form-row">
+      <label>Calibration Certificate Ref.</label>
+      <input type="text" id="calibCertRef" placeholder="e.g. CERT-2024-0045">
+    </div>
+    <div class="form-row">
+      <label>Calibration Lab / Provider</label>
+      <input type="text" id="calibLab" placeholder="e.g. Exfo Calibration Services">
+    </div>
+    <div class="form-row">
+      <label>Notes</label>
+      <textarea id="calibNotes" rows="2" placeholder="Optional remarks..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeCalibModal()">Cancel</button>
+      <button class="btn btn-green" onclick="saveCalib()">Save Calibration Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- Submit Check Modal -->
+<div class="modal-overlay" id="submitCheckModal">
+  <div class="modal" style="max-width:420px;">
+    <h3>✅ Submit 6-Monthly Check</h3>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.6;">
+      Submitting 6-monthly test equipment check for <strong id="submitStationName" style="color:var(--green);">—</strong>.
+    </p>
+    <div id="submitSummary" style="background:var(--input-bg);border-radius:10px;padding:16px;margin-bottom:20px;font-size:13px;"></div>
+    <div class="form-row">
+      <label>Supervisor Remarks</label>
+      <textarea id="submitRemarks" rows="2" placeholder="Any overall observations..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeSubmitModal()">Cancel</button>
+      <button class="btn btn-green" onclick="finalSubmit()">Confirm & Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="page-header">
+  <a href="home.html" class="back-btn">← Portal</a>
+  <div class="header-sep"></div>
+  <div class="header-icon">📡</div>
+  <div class="header-title">Test Equipment</div>
+  <div class="header-spacer"></div>
+  <div id="loginArea" style="display:none;display:flex;align-items:center;gap:10px;">
+    <span class="user-pill" id="userPill">—</span>
+    <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
+  </div>
+</header>
+
+<!-- Main content -->
+<div class="content" id="mainContent" style="display:none;">
+
+  <div class="station-bar">
+    <span class="station-label">Station:</span>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;flex:1;">
+      <button class="station-chip" onclick="selectStation('MNZ')">🇿🇦 MNZ</button>
+      <button class="station-chip" onclick="selectStation('MPT')">🇲🇿 MPT</button>
+      <button class="station-chip" onclick="selectStation('DES')">🇹🇿 DES</button>
+      <button class="station-chip" onclick="selectStation('MBS')">🇰🇪 MBS</button>
+      <button class="station-chip" onclick="selectStation('MGD')">🇸🇴 MGD</button>
+      <button class="station-chip" onclick="selectStation('DBT')">🇩🇯 DBT</button>
+      <button class="station-chip" onclick="selectStation('PSD')">🇸🇩 PSD</button>
+      <button class="station-chip" onclick="selectStation('TLR')">🇲🇬 TLR</button>
+      <button class="station-chip" onclick="selectStation('MRN')">🇰🇲 MRN</button>
+    </div>
+  </div>
+
+  <div id="stationContent">
+    <div class="alert alert-info">ℹ️ Select a station to view its test equipment inventory.</div>
+  </div>
+
+</div>
+
+<script>
+const SUPABASE_URL = 'https://wpblebjftxcdfrwwguti.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmxlYmpmdHhjZGZyd3dndXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ0NDE1NzMsImV4cCI6MjA2MDAxNzU3M30.OtAkTMZ9pZM52gVPpgkROatAjGmSGeyrmVF85i9MFCA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const ADMIN_WHITELIST = {
+  'MRN':'assad.comorescables@outlook.com','TLR':'johary.ramboa@telma.mg',
+  'DBT':'farah.abdi@djibtel.dj','PSD':'abdelhameeda@sudatel.sd',
+  'MGD':'girde@dalkomsomalia.com','MBS':'totieno@telkom.co.ke',
+  'MNZ':'waynee@openserve.co.za','MPT':'nhiuane@tmcel.mz',
+  'DES':'omar.said@yas.co.tz','SUPER':'verne.steyn@wiocc.net'
+};
+
+// Master EASSy test equipment list
+const MASTER_EQUIP = [
+  {no:1, equipment:"Digital Transmission Analyzer", description:"STM64 DTA – 10GbE (EXFO FTB-200 platform + FTB-8130NGE module)", supplier:"Exfo", calibration_interval:"5 years", is_powered:true, has_battery:false},
+  {no:2, equipment:"Optical Spectrum Analyzer", description:"EXFO FTB-200 platform + FTB-5240S module", supplier:"Exfo", calibration_interval:"5 years", is_powered:true, has_battery:false},
+  {no:3, equipment:"Optical Time Domain Reflectometer", description:"AXS-110-23B", supplier:"Exfo", calibration_interval:"5 years", is_powered:true, has_battery:true},
+  {no:4, equipment:"Optical Power Meter", description:"FPM-3000", supplier:"Exfo", calibration_interval:"5 years", is_powered:true, has_battery:true},
+  {no:5, equipment:"Fiber Cleaning Set", description:"Lint-free wipes, IPA solution, swabs, reel cleaner", supplier:"", calibration_interval:"", is_powered:false, has_battery:false},
+  {no:6, equipment:"Visible Light Source", description:"FLS-240", supplier:"Exfo", calibration_interval:"5 years", is_powered:true, has_battery:true},
+  {no:7, equipment:"Portable Fiberscope", description:"FIP-400-D-Single (with tip adapters SC, LC, MU, FC)", supplier:"Exfo", calibration_interval:"5 years", is_powered:false, has_battery:true},
+  {no:8, equipment:"Fiber Splicing Kit", description:"Sumitomo T-39 Splicer + FC-6S Cleaver", supplier:"Sumitomo", calibration_interval:"3 years", is_powered:true, has_battery:true},
+  {no:9, equipment:"Set of Fiber Patch Cords", description:"SC/PC, SC/APC, FC/PC, MU, LC variants — 3m", supplier:"Exfo", calibration_interval:"5 years", is_powered:false, has_battery:false},
+  {no:10, equipment:"Set of Optical Attenuators", description:"LC and MU attenuators: 2dB, 5dB, 10dB", supplier:"", calibration_interval:"", is_powered:false, has_battery:false},
+  {no:11, equipment:"Variable Optical Attenuator", description:"FVA-60-B-B", supplier:"Exfo", calibration_interval:"5 years", is_powered:true, has_battery:false},
+  {no:12, equipment:"Electric Clamp Meter", description:"CA 5287 with B102 clamp and thermocouple adaptor", supplier:"Exfo", calibration_interval:"5 years", is_powered:false, has_battery:true},
+  {no:13, equipment:"Portable Electrical Source", description:"GPR11H30D with mini clamp option", supplier:"Exfo", calibration_interval:"5 years", is_powered:true, has_battery:true}
+];
+
+const EQUIP_ICONS = {
+  "Digital Transmission Analyzer":"📊","Optical Spectrum Analyzer":"🌈",
+  "Optical Time Domain Reflectometer":"📡","Optical Power Meter":"💡",
+  "Fiber Cleaning Set":"🧹","Visible Light Source":"🔦",
+  "Portable Fiberscope":"🔬","Fiber Splicing Kit":"⚡",
+  "Set of Fiber Patch Cords":"🔌","Set of Optical Attenuators":"🔧",
+  "Variable Optical Attenuator":"🎛️","Electric Clamp Meter":"⚡",
+  "Portable Electrical Source":"🔋"
+};
+
+const STATION_NAMES = {MNZ:'Mtunzini',MPT:'Maputo',DES:'Dar es Salaam',MBS:'Mombasa',MGD:'Mogadishu',DBT:'Djibouti',PSD:'Port Sudan',TLR:'Toliary',MRN:'Moroni'};
+const FLAGS = {MNZ:'🇿🇦',MPT:'🇲🇿',DES:'🇹🇿',MBS:'🇰🇪',MGD:'🇸🇴',DBT:'🇩🇯',PSD:'🇸🇩',TLR:'🇲🇬',MRN:'🇰🇲'};
+
+let currentUser = null, userProfile = null, currentStation = null;
+let inventory = [], checkMode = false, checkData = {};
+
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) await handleSession(session);
+  sb.auth.onAuthStateChange(async (ev, session) => {
+    if (session) await handleSession(session);
+    else showAuth();
+  });
+}
+
+async function handleSession(session) {
+  currentUser = session.user;
+  const { data: p } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  userProfile = p;
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('loginArea').style.display = 'flex';
+  document.getElementById('userPill').textContent = (p?.full_name || currentUser.email.split('@')[0]) + ' · ' + (p?.station_code || '—');
+  if (p?.station_code) selectStation(p.station_code);
+}
+
+function showAuth() {
+  document.getElementById('authOverlay').style.display = 'flex';
+  document.getElementById('mainContent').style.display = 'none';
+}
+
+function isAdmin() {
+  if (!currentUser) return false;
+  return currentUser.email === ADMIN_WHITELIST.SUPER || currentUser.email === ADMIN_WHITELIST[userProfile?.station_code];
+}
+
+function canEdit() {
+  if (!currentUser) return false;
+  if (currentUser.email === ADMIN_WHITELIST.SUPER) return true;
+  return userProfile?.station_code === currentStation && isAdmin();
+}
+
+// Auth
+function showRegister() { document.getElementById('authLoginForm').classList.add('hidden'); document.getElementById('authRegisterForm').classList.remove('hidden'); }
+function showLogin() { document.getElementById('authRegisterForm').classList.add('hidden'); document.getElementById('authLoginForm').classList.remove('hidden'); }
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  document.getElementById('loginMsg').textContent = 'Signing in...';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) document.getElementById('loginMsg').textContent = error.message;
+}
+
+async function doRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPass').value;
+  const station = document.getElementById('regStation').value;
+  const msg = document.getElementById('regMsg');
+  if (!name || !email || !pass || !station) { msg.textContent = 'Please fill all fields.'; return; }
+  msg.textContent = 'Creating account...'; msg.className = 'auth-msg';
+  const { data, error } = await sb.auth.signUp({
+    email, password: pass,
+    options: { data: { full_name: name, station_code: station },
+      emailRedirectTo: 'https://verne-steyn.github.io/Eassy-cls/testequip.html' }
+  });
+  if (error) { msg.textContent = error.message; return; }
+  if (data.user) {
+    await sb.from('profiles').upsert({ id: data.user.id, full_name: name, email, station_code: station, role: 'user' });
+    msg.className = 'auth-msg success';
+    msg.textContent = 'Account created! Check your email to confirm.';
+  }
+}
+
+async function doLogout() { await sb.auth.signOut(); showAuth(); }
+
+// Station selection
+async function selectStation(code) {
+  currentStation = code;
+  checkMode = false; checkData = {};
+  document.querySelectorAll('.station-chip').forEach(c => {
+    c.classList.toggle('active', c.textContent.includes(code));
+  });
+  await renderStation();
+}
+
+async function renderStation() {
+  const el = document.getElementById('stationContent');
+  el.innerHTML = `<div class="loading"><div class="spinner"></div><br>Loading ${currentStation} equipment...</div>`;
+
+  const { data: inv, error } = await sb.from('testequip_inventory')
+    .select('*').eq('station_code', currentStation).order('equip_no');
+
+  if (error) {
+    el.innerHTML = `<div class="alert alert-warn">⚠️ testequip_inventory table not found. Please create required Supabase tables.</div>`;
+    return;
+  }
+
+  inventory = inv || [];
+
+  const { data: lastChecks } = await sb.from('testequip_checks')
+    .select('*').eq('station_code', currentStation)
+    .order('check_date', { ascending: false }).limit(5);
+
+  el.innerHTML = buildStationHTML(lastChecks || []);
+  if (checkMode) el.querySelector('.equip-grid')?.classList.add('check-mode-active');
+}
+
+function buildStationHTML(lastChecks) {
+  const flag = FLAGS[currentStation];
+  const name = STATION_NAMES[currentStation];
+  const editable = canEdit();
+
+  // Calibration stats
+  const now = new Date();
+  let calibOk = 0, calibWarn = 0, calibOverdue = 0, calibUnknown = 0;
+  inventory.forEach(e => {
+    const s = calibStatus(e);
+    if (s === 'ok') calibOk++;
+    else if (s === 'warn') calibWarn++;
+    else if (s === 'overdue') calibOverdue++;
+    else calibUnknown++;
+  });
+
+  let lastCheckDate = '—';
+  if (lastChecks.length > 0) lastCheckDate = new Date(lastChecks[0].check_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+
+  let dueAlert = '';
+  if (lastChecks.length > 0) {
+    const due = new Date(lastChecks[0].check_date);
+    due.setMonth(due.getMonth() + 6);
+    const days = Math.round((due - now) / 86400000);
+    if (days < 0) dueAlert = `<div class="alert alert-err">⚠️ 6-Monthly check OVERDUE by ${Math.abs(days)} days</div>`;
+    else if (days <= 30) dueAlert = `<div class="alert alert-warn">🔔 6-Monthly check due in ${days} days</div>`;
+  } else {
+    dueAlert = `<div class="alert alert-warn">📋 No 6-monthly check recorded for this station yet.</div>`;
+  }
+
+  if (calibOverdue > 0) dueAlert += `<div class="alert alert-err">📅 ${calibOverdue} item${calibOverdue>1?'s':''} with OVERDUE calibration</div>`;
+  else if (calibWarn > 0) dueAlert += `<div class="alert alert-warn">📅 ${calibWarn} item${calibWarn>1?'s':''} with calibration due within 3 months</div>`;
+
+  return `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+      <span style="font-size:32px;">${flag}</span>
+      <div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;letter-spacing:1px;color:var(--green);">${currentStation} — ${name}</div>
+        <div style="font-size:12px;color:var(--muted);">Test Equipment Inventory · Last check: ${lastCheckDate}</div>
+      </div>
+    </div>
+
+    ${dueAlert}
+
+    <div class="stats-strip">
+      <div class="stat-card green">
+        <div class="stat-label">Total Equipment</div>
+        <div class="stat-value">${inventory.length}</div>
+        <div class="stat-sub">items registered</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Calibration OK</div>
+        <div class="stat-value">${calibOk}</div>
+        <div class="stat-sub">within interval</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-label">Due Soon / Unknown</div>
+        <div class="stat-value">${calibWarn + calibUnknown}</div>
+        <div class="stat-sub">needs attention</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Overdue</div>
+        <div class="stat-value">${calibOverdue}</div>
+        <div class="stat-sub">calibration overdue</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-title">Equipment Inventory</div>
+      ${editable ? `
+        <button class="btn btn-outline btn-sm" onclick="seedMaster()" title="Load the 13 standard EASSy test equipment items">⬇ Load Master List</button>
+        <button class="btn btn-green btn-sm" onclick="openAddEquip()">➕ Add Equipment</button>
+      ` : ''}
+      ${editable && !checkMode ? `<button class="btn btn-green btn-sm" onclick="startCheck()">▶ Start 6-Monthly Check</button>` : ''}
+      ${checkMode ? `
+        <button class="btn btn-red btn-sm" onclick="cancelCheck()">✕ Cancel</button>
+        <button class="btn btn-green" onclick="openSubmitModal()">✅ Submit Check</button>
+      ` : ''}
+    </div>
+
+    ${checkMode ? `
+      <div class="check-banner active">
+        <span style="font-size:20px;">📋</span>
+        <div style="flex:1;">
+          <strong style="color:var(--green);font-size:14px;display:block;">6-Monthly Check in Progress</strong>
+          <span style="font-size:12px;color:var(--muted);">For each item: confirm presence, functional test result, power/cord check, calibration review, and redundancy status.</span>
+        </div>
+      </div>
+    ` : ''}
+
+    <div class="equip-grid ${checkMode ? 'check-mode-active' : ''}" id="equipGrid">
+      ${inventory.length === 0 ? `
+        <div class="alert alert-info" style="grid-column:1/-1;">
+          📦 No equipment registered yet. ${editable ? 'Use "Load Master List" or "Add Equipment" to begin.' : 'Contact your station admin to set up inventory.'}
+        </div>
+      ` : inventory.map(e => renderEquipCard(e, editable)).join('')}
+    </div>
+
+    ${lastChecks.length > 0 ? `
+      <div class="checks-panel">
+        <div class="panel-header">
+          <h3>📅 Previous 6-Monthly Checks</h3>
+          <span class="panel-badge">${lastChecks.length} records</span>
+        </div>
+        ${lastChecks.map(c => {
+          const score = c.items_ok && c.items_total ? Math.round(c.items_ok/c.items_total*100) : null;
+          return `<div class="check-row-hist">
+            <span style="color:var(--muted);font-size:12px;min-width:100px;">${new Date(c.check_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</span>
+            <span style="flex:1;">${c.checked_by||'—'}</span>
+            ${score!==null?`<span style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;color:${score>=90?'var(--green)':score>=70?'var(--amber)':'var(--red)'};">${score}%</span>`:''}
+            <span style="font-size:11px;color:var(--muted);">${c.items_ok||0}/${c.items_total||0} OK</span>
+          </div>`;
+        }).join('')}
+      </div>
+    ` : ''}
+  `;
+}
+
+function calibStatus(equip) {
+  if (!equip.calibration_interval || equip.calibration_interval === '') return 'na';
+  if (!equip.last_calibration_date) return 'unknown';
+  const last = new Date(equip.last_calibration_date);
+  const intervalYears = parseInt(equip.calibration_interval);
+  if (isNaN(intervalYears)) return 'unknown';
+  const due = new Date(last);
+  due.setFullYear(due.getFullYear() + intervalYears);
+  const now = new Date();
+  const daysLeft = Math.round((due - now) / 86400000);
+  if (daysLeft < 0) return 'overdue';
+  if (daysLeft <= 90) return 'warn';
+  return 'ok';
+}
+
+function calibTagHtml(equip) {
+  const s = calibStatus(equip);
+  if (s === 'na') return '<span class="calib-tag tag-unknown">No calibration req.</span>';
+  if (s === 'unknown') return '<span class="calib-tag tag-unknown">Calibration date unknown</span>';
+
+  const last = new Date(equip.last_calibration_date);
+  const intervalYears = parseInt(equip.calibration_interval);
+  const due = new Date(last); due.setFullYear(due.getFullYear() + intervalYears);
+  const daysLeft = Math.round((due - new Date()) / 86400000);
+  const pct = Math.max(0, Math.min(100, (daysLeft / (intervalYears * 365)) * 100));
+
+  const tagClass = s === 'ok' ? 'tag-ok' : s === 'warn' ? 'tag-warn' : 'tag-overdue';
+  const barClass = s === 'ok' ? 'calib-ok' : s === 'warn' ? 'calib-warn' : 'calib-overdue';
+  const label = s === 'overdue' ? `Overdue by ${Math.abs(daysLeft)} days` :
+                s === 'warn' ? `Due in ${daysLeft} days` :
+                `Due ${due.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}`;
+
+  return `
+    <span class="calib-tag ${tagClass}">${label}</span>
+    <div class="calib-bar-bg"><div class="calib-bar-fill ${barClass}" style="width:${pct}%"></div></div>
+  `;
+}
+
+function renderEquipCard(e, editable) {
+  const icon = EQUIP_ICONS[e.equipment] || '🔬';
+  const s = calibStatus(e);
+  const dotClass = s === 'ok' ? 'dot-green' : s === 'warn' || s === 'unknown' ? 'dot-amber' : s === 'overdue' ? 'dot-red' : 'dot-grey';
+  const cd = checkData[e.id] || {};
+
+  return `<div class="equip-card" id="card-${e.id}">
+    <div class="equip-card-top">
+      <div class="equip-icon-circle">${icon}</div>
+      <div class="equip-meta">
+        <div class="equip-no">Item ${e.equip_no} · ${e.supplier || 'Unknown'}</div>
+        <div class="equip-name">${e.equipment}</div>
+        <div class="equip-model">${e.description || ''}</div>
+      </div>
+      <div class="equip-status-dot ${dotClass}" title="Calibration status"></div>
+    </div>
+
+    <div class="equip-card-body">
+      <div class="equip-row">
+        <span class="equip-row-label">Serial No.</span>
+        <span class="equip-row-val">${e.serial_no || '—'}</span>
+      </div>
+      <div class="equip-row">
+        <span class="equip-row-label">Calibration</span>
+        <span class="equip-row-val">${e.calibration_interval || 'N/A'}</span>
+      </div>
+      <div class="equip-row">
+        <span class="equip-row-label">Last Calibrated</span>
+        <span class="equip-row-val">${e.last_calibration_date ? new Date(e.last_calibration_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</span>
+      </div>
+      ${calibTagHtml(e)}
+      <div class="equip-row">
+        <span class="equip-row-label">Redundancy</span>
+        <span class="equip-row-val" style="color:${e.redundancy==='yes'?'var(--green)':e.redundancy==='shared'?'var(--amber)':'var(--red)'};">
+          ${e.redundancy === 'yes' ? '✅ Backup available' : e.redundancy === 'shared' ? '⚠️ Shared' : '❌ Single unit'}
+        </span>
+      </div>
+      <div style="display:flex;gap:8px;font-size:10px;color:var(--muted);flex-wrap:wrap;margin-top:6px;">
+        ${e.is_powered ? '<span>⚡ Mains power</span>' : ''}
+        ${e.has_battery ? '<span>🔋 Battery</span>' : ''}
+        ${e.is_custom ? '<span style="color:var(--teal);">✦ Custom item</span>' : ''}
+      </div>
+
+      <!-- CHECK MODE OVERLAY -->
+      <div class="check-overlay">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);margin-bottom:12px;">6-Monthly Check Fields</div>
+        <div class="check-grid">
+          <div>
+            <div class="check-field-label">Present?</div>
+            <select class="check-select" onchange="setCheck('${e.id}','present',this.value);styleSelect(this)">
+              <option value="">Select...</option>
+              <option value="Yes" ${cd.present==='Yes'?'selected':''}>✅ Yes</option>
+              <option value="No" ${cd.present==='No'?'selected':''}>❌ No</option>
+            </select>
+          </div>
+          <div>
+            <div class="check-field-label">Functional Test</div>
+            <select class="check-select" onchange="setCheck('${e.id}','functional',this.value);styleSelect(this)">
+              <option value="">Select...</option>
+              <option value="Pass" ${cd.functional==='Pass'?'selected':''}>✅ Pass</option>
+              <option value="Fail" ${cd.functional==='Fail'?'selected':''}>❌ Fail</option>
+              <option value="N/A" ${cd.functional==='N/A'?'selected':''}>— N/A</option>
+            </select>
+          </div>
+          ${e.is_powered ? `<div>
+            <div class="check-field-label">Cord / PSU</div>
+            <select class="check-select" onchange="setCheck('${e.id}','cord_check',this.value);styleSelect(this)">
+              <option value="">Select...</option>
+              <option value="Good" ${cd.cord_check==='Good'?'selected':''}>✅ Good</option>
+              <option value="Damaged" ${cd.cord_check==='Damaged'?'selected':''}>❌ Damaged</option>
+              <option value="Missing" ${cd.cord_check==='Missing'?'selected':''}>🚫 Missing</option>
+            </select>
+          </div>` : '<div></div>'}
+          ${e.has_battery ? `<div>
+            <div class="check-field-label">Battery</div>
+            <select class="check-select" onchange="setCheck('${e.id}','battery_check',this.value);styleSelect(this)">
+              <option value="">Select...</option>
+              <option value="Good" ${cd.battery_check==='Good'?'selected':''}>✅ Good</option>
+              <option value="Flat" ${cd.battery_check==='Flat'?'selected':''}>⚠️ Flat</option>
+              <option value="Faulty" ${cd.battery_check==='Faulty'?'selected':''}>❌ Faulty</option>
+              <option value="N/A" ${cd.battery_check==='N/A'?'selected':''}>— N/A</option>
+            </select>
+          </div>` : '<div></div>'}
+          <div>
+            <div class="check-field-label">Accessories</div>
+            <select class="check-select" onchange="setCheck('${e.id}','accessories',this.value);styleSelect(this)">
+              <option value="">Select...</option>
+              <option value="Complete" ${cd.accessories==='Complete'?'selected':''}>✅ Complete</option>
+              <option value="Partial" ${cd.accessories==='Partial'?'selected':''}>⚠️ Partial</option>
+              <option value="Missing" ${cd.accessories==='Missing'?'selected':''}>❌ Missing</option>
+            </select>
+          </div>
+          <div>
+            <div class="check-field-label">Redundancy OK?</div>
+            <select class="check-select" onchange="setCheck('${e.id}','redundancy_check',this.value);styleSelect(this)">
+              <option value="">Select...</option>
+              <option value="Yes" ${cd.redundancy_check==='Yes'?'selected':''}>✅ Yes</option>
+              <option value="No" ${cd.redundancy_check==='No'?'selected':''}>❌ No</option>
+              <option value="N/A" ${cd.redundancy_check==='N/A'?'selected':''}>— N/A</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <div class="check-field-label">Notes / Observations</div>
+          <input type="text" class="check-input" value="${cd.notes||''}" placeholder="Any issues, observations..." onchange="setCheck('${e.id}','notes',this.value)">
+        </div>
+      </div>
+    </div>
+
+    <div class="equip-card-footer">
+      ${editable ? `<button class="btn btn-outline btn-sm" onclick="openCalibModal('${e.id}')">📅 Update Calibration</button>` : ''}
+      ${editable ? `<button class="btn btn-ghost btn-sm" onclick="deleteEquip('${e.id}')">🗑</button>` : ''}
+    </div>
+  </div>`;
+}
+
+function styleSelect(el) {
+  el.className = 'check-select';
+  const v = el.value;
+  if (['Pass','Good','Yes','Complete'].includes(v)) el.classList.add('pass');
+  else if (['Fail','Damaged','Missing','Flat','Faulty','No'].includes(v)) el.classList.add('fail');
+  else if (v === 'N/A') el.classList.add('na');
+}
+
+// Check mode
+function startCheck() {
+  checkMode = true; checkData = {};
+  inventory.forEach(e => { checkData[e.id] = {}; });
+  renderStation();
+}
+
+function cancelCheck() { checkMode = false; checkData = {}; renderStation(); }
+
+function setCheck(equipId, field, value) {
+  if (!checkData[equipId]) checkData[equipId] = {};
+  checkData[equipId][field] = value;
+}
+
+function openSubmitModal() {
+  document.getElementById('submitStationName').textContent = `${currentStation} — ${STATION_NAMES[currentStation]}`;
+  let ok = 0, issues = 0, powerFails = 0, missing = 0;
+  inventory.forEach(e => {
+    const cd = checkData[e.id] || {};
+    if (cd.functional === 'Pass' && cd.present === 'Yes') ok++;
+    if (cd.functional === 'Fail') issues++;
+    if ((cd.cord_check === 'Damaged' || cd.cord_check === 'Missing') && e.is_powered) powerFails++;
+    if (cd.present === 'No') missing++;
+  });
+  document.getElementById('submitSummary').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div>📡 <strong>Total items:</strong> ${inventory.length}</div>
+      <div style="color:var(--green);">✅ <strong>Passed:</strong> ${ok}</div>
+      <div style="color:var(--red);">⚠️ <strong>Functional fails:</strong> ${issues}</div>
+      <div style="color:var(--red);">🚫 <strong>Not present:</strong> ${missing}</div>
+      <div style="color:${powerFails>0?'var(--red)':'var(--green)'};">⚡ <strong>Power issues:</strong> ${powerFails}</div>
+    </div>
+  `;
+  document.getElementById('submitCheckModal').classList.add('open');
+}
+
+function closeSubmitModal() { document.getElementById('submitCheckModal').classList.remove('open'); }
+
+async function finalSubmit() {
+  let ok = 0;
+  inventory.forEach(e => {
+    const cd = checkData[e.id] || {};
+    if (cd.functional === 'Pass' || (cd.present === 'Yes' && !e.calibration_interval)) ok++;
+  });
+
+  const items = inventory.map(e => ({ equip_id: e.id, equipment: e.equipment, ...checkData[e.id] }));
+
+  const { error } = await sb.from('testequip_checks').insert({
+    station_code: currentStation,
+    check_date: new Date().toISOString(),
+    checked_by: userProfile?.full_name || currentUser.email,
+    items_ok: ok, items_total: inventory.length,
+    remarks: document.getElementById('submitRemarks').value,
+    check_details: items
+  });
+
+  if (error) { alert('Error: ' + error.message); return; }
+  closeSubmitModal();
+  checkMode = false; checkData = {};
+  await renderStation();
+}
+
+// Inventory management
+function openAddEquip() { document.getElementById('addEquipModal').classList.add('open'); }
+function closeAddEquip() { document.getElementById('addEquipModal').classList.remove('open'); }
+
+async function saveNewEquip() {
+  const name = document.getElementById('newEquipName').value.trim();
+  if (!name) { alert('Equipment name is required.'); return; }
+  const nextNo = inventory.length > 0 ? Math.max(...inventory.map(e => e.equip_no||0)) + 1 : 1;
+
+  const { error } = await sb.from('testequip_inventory').insert({
+    station_code: currentStation,
+    equip_no: nextNo,
+    equipment: name,
+    description: document.getElementById('newEquipDesc').value.trim(),
+    supplier: document.getElementById('newEquipSupplier').value.trim(),
+    serial_no: document.getElementById('newEquipSerial').value.trim(),
+    calibration_interval: document.getElementById('newEquipCalibInterval').value,
+    last_calibration_date: document.getElementById('newEquipCalibDate').value || null,
+    redundancy: document.getElementById('newEquipRedundancy').value,
+    is_powered: document.getElementById('newEquipPowered').checked,
+    has_battery: document.getElementById('newEquipBattery').checked,
+    notes: document.getElementById('newEquipNotes').value.trim(),
+    is_custom: true
+  });
+
+  if (error) { alert('Error: ' + error.message); return; }
+  closeAddEquip();
+  await renderStation();
+}
+
+async function deleteEquip(id) {
+  if (!confirm('Remove this equipment from the station inventory?')) return;
+  await sb.from('testequip_inventory').delete().eq('id', id);
+  await renderStation();
+}
+
+// Calibration modal
+function openCalibModal(equipId) {
+  document.getElementById('calibEquipId').value = equipId;
+  document.getElementById('calibDate').value = '';
+  document.getElementById('calibCertRef').value = '';
+  document.getElementById('calibLab').value = '';
+  document.getElementById('calibNotes').value = '';
+  document.getElementById('calibModal').classList.add('open');
+}
+function closeCalibModal() { document.getElementById('calibModal').classList.remove('open'); }
+
+async function saveCalib() {
+  const id = document.getElementById('calibEquipId').value;
+  const date = document.getElementById('calibDate').value;
+  if (!date) { alert('Calibration date is required.'); return; }
+
+  const { error } = await sb.from('testequip_inventory').update({
+    last_calibration_date: date,
+    calib_cert_ref: document.getElementById('calibCertRef').value,
+    calib_lab: document.getElementById('calibLab').value,
+    calib_notes: document.getElementById('calibNotes').value
+  }).eq('id', id);
+
+  if (error) { alert('Error: ' + error.message); return; }
+  closeCalibModal();
+  await renderStation();
+}
+
+async function seedMaster() {
+  if (!confirm(`Load all 13 standard EASSy test equipment items into ${currentStation}? Existing items won't be duplicated.`)) return;
+  const existingNos = new Set(inventory.map(e => e.equip_no));
+  const toInsert = MASTER_EQUIP
+    .filter(e => !existingNos.has(e.no))
+    .map(e => ({
+      station_code: currentStation,
+      equip_no: e.no,
+      equipment: e.equipment,
+      description: e.description,
+      supplier: e.supplier,
+      calibration_interval: e.calibration_interval,
+      is_powered: e.is_powered,
+      has_battery: e.has_battery,
+      redundancy: 'no',
+      is_custom: false
+    }));
+
+  if (toInsert.length === 0) { alert('All master items already in inventory.'); return; }
+
+  const { error } = await sb.from('testequip_inventory').insert(toInsert);
+  if (error) { alert('Error: ' + error.message); return; }
+  await renderStation();
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EASSy CLS — Station Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy-mid: #112240;
+    --navy-light: #1a3357;
+    --teal: #00b4d8;
+    --teal-dark: #0077a8;
+    --amber: #f59e0b;
+    --amber-dark: #d97706;
+    --green: #10b981;
+    --red: #ef4444;
+    --white: #f0f4f8;
+    --muted: #8fa3bc;
+    --card-bg: #112240;
+    --border: #1e3a5f;
+    --input-bg: #0d1e38;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--navy);
+    color: var(--white);
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(245,158,11,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245,158,11,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Header */
+  .page-header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,22,40,0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 60px;
+  }
+
+  .back-btn {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--muted); text-decoration: none;
+    font-size: 13px; font-weight: 500;
+    transition: color 0.2s;
+    padding: 6px 0;
+  }
+  .back-btn:hover { color: var(--amber); }
+
+  .header-sep { width: 1px; height: 24px; background: var(--border); }
+
+  .header-icon {
+    width: 32px; height: 32px;
+    background: rgba(245,158,11,0.12);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .header-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+
+  .header-spacer { flex: 1; }
+
+  .login-area { display: flex; align-items: center; gap: 10px; }
+
+  .user-pill {
+    background: rgba(245,158,11,0.1);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--amber);
+    font-weight: 500;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+  }
+
+  .btn-amber { background: var(--amber); color: var(--navy); }
+  .btn-amber:hover { background: var(--amber-dark); }
+  .btn-outline { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--amber); color: var(--amber); }
+  .btn-ghost { background: transparent; color: var(--muted); border: none; }
+  .btn-ghost:hover { color: var(--white); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-green { background: var(--green); color: white; }
+  .btn-green:hover { background: #059669; }
+  .btn-red { background: var(--red); color: white; }
+  .btn-red:hover { background: #dc2626; }
+
+  /* Auth overlay */
+  .auth-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(10,22,40,0.96);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .auth-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px;
+    width: 380px;
+    max-width: 92vw;
+  }
+
+  .auth-logo {
+    text-align: center; margin-bottom: 28px;
+  }
+
+  .auth-logo .badge {
+    display: inline-block;
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--amber-dark), var(--amber));
+    border-radius: 14px;
+    line-height: 56px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800; font-size: 20px;
+    color: var(--navy);
+    margin-bottom: 12px;
+  }
+
+  .auth-logo h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px; font-weight: 800;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--amber);
+  }
+
+  .auth-logo p { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .form-group { margin-bottom: 16px; }
+
+  .form-group label {
+    display: block;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px;
+  }
+
+  .form-group input, .form-group select {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--white);
+    font-family: 'Barlow', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus, .form-group select:focus { border-color: var(--amber); }
+  .form-group select option { background: var(--navy-mid); }
+
+  .auth-msg {
+    font-size: 12px; text-align: center; margin-top: 12px;
+    min-height: 18px; color: var(--red);
+  }
+  .auth-msg.success { color: var(--green); }
+
+  /* Content layout */
+  .content {
+    position: relative; z-index: 10;
+    max-width: 1400px; margin: 0 auto;
+    padding: 32px;
+  }
+
+  /* Station selector */
+  .station-bar {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .station-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--muted);
+    margin-right: 4px;
+  }
+
+  .station-chips {
+    display: flex; flex-wrap: wrap; gap: 8px; flex: 1;
+  }
+
+  .station-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px; font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .station-chip:hover { border-color: var(--amber); color: var(--amber); }
+  .station-chip.active {
+    background: var(--amber); border-color: var(--amber);
+    color: var(--navy);
+  }
+
+  /* Stats strip */
+  .stats-strip {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 16px; margin-bottom: 28px;
+  }
+
+  @media (max-width: 700px) {
+    .stats-strip { grid-template-columns: repeat(2, 1fr); }
+    .content { padding: 16px; }
+  }
+
+  .stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    position: relative; overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  }
+
+  .stat-card.amber::before { background: var(--amber); }
+  .stat-card.green::before { background: var(--green); }
+  .stat-card.red::before { background: var(--red); }
+  .stat-card.blue::before { background: var(--teal); }
+
+  .stat-label {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 32px; font-weight: 800;
+    line-height: 1;
+  }
+
+  .stat-card.amber .stat-value { color: var(--amber); }
+  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.red .stat-value { color: var(--red); }
+  .stat-card.blue .stat-value { color: var(--teal); }
+
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px; flex-wrap: wrap;
+  }
+
+  .toolbar-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+    flex: 1;
+  }
+
+  .search-box {
+    position: relative;
+  }
+
+  .search-box input {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px 8px 32px;
+    color: var(--white);
+    font-size: 13px;
+    outline: none;
+    width: 200px;
+    transition: border-color 0.2s;
+  }
+
+  .search-box input:focus { border-color: var(--amber); width: 260px; }
+
+  .search-box::before {
+    content: '🔍';
+    position: absolute; left: 10px; top: 50%;
+    transform: translateY(-50%); font-size: 12px;
+  }
+
+  /* Check mode banner */
+  .check-banner {
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.25);
+    border-radius: 12px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 12px;
+    display: none;
+  }
+
+  .check-banner.active { display: flex; }
+  .check-banner-icon { font-size: 20px; }
+
+  .check-banner-text { flex: 1; }
+  .check-banner-text strong { font-size: 14px; font-weight: 600; color: var(--amber); display: block; }
+  .check-banner-text span { font-size: 12px; color: var(--muted); }
+
+  /* Tools table */
+  .tools-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .panel-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(245,158,11,0.04);
+  }
+
+  .panel-header h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--amber);
+    flex: 1;
+  }
+
+  .panel-badge {
+    background: rgba(245,158,11,0.15);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 11px; font-weight: 600;
+    color: var(--amber);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted);
+    background: rgba(0,0,0,0.2);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(30,58,95,0.5);
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  tbody tr:last-child { border-bottom: none; }
+
+  td {
+    padding: 10px 14px;
+    vertical-align: middle;
+  }
+
+  .tool-no {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 12px; font-weight: 600;
+    color: var(--muted);
+    width: 40px;
+  }
+
+  .tool-desc { color: var(--white); font-weight: 500; }
+
+  .tool-model {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px; color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  .qty-badge {
+    display: inline-block;
+    background: rgba(30,58,95,0.8);
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px; font-weight: 600;
+    color: var(--teal);
+  }
+
+  /* Check fields (shown in check mode) */
+  .check-field { display: none; }
+  .check-mode .check-field { display: table-cell; }
+  .check-mode .inventory-only { display: none; }
+
+  .check-select {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: var(--white);
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+    min-width: 90px;
+  }
+
+  .check-select:focus { border-color: var(--amber); }
+  .check-select.pass { border-color: var(--green); color: var(--green); }
+  .check-select.fail { border-color: var(--red); color: var(--red); }
+  .check-select.na { border-color: var(--muted); color: var(--muted); }
+
+  .check-input {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    color: var(--white);
+    font-size: 12px;
+    outline: none;
+    width: 100%;
+    min-width: 80px;
+  }
+
+  .check-input:focus { border-color: var(--amber); }
+
+  /* Powered tool indicator */
+  .powered-indicator {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; color: var(--amber);
+    background: rgba(245,158,11,0.1);
+    border-radius: 4px; padding: 2px 6px;
+    margin-top: 2px;
+  }
+
+  .status-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+
+  .dot-green { background: var(--green); }
+  .dot-red { background: var(--red); }
+  .dot-amber { background: var(--amber); }
+  .dot-grey { background: var(--muted); }
+
+  /* Add tool modal */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(10,22,40,0.9);
+    display: flex; align-items: center; justify-content: center;
+    display: none;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    width: 480px; max-width: 94vw;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--amber); margin-bottom: 20px;
+  }
+
+  .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .modal-grid .full { grid-column: 1/-1; }
+
+  .form-row { margin-bottom: 16px; }
+
+  .form-row label {
+    display: block;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px;
+  }
+
+  .form-row input, .form-row select, .form-row textarea {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--white);
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: vertical;
+  }
+
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--amber); }
+  .form-row select option { background: var(--navy-mid); }
+
+  .checkbox-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+
+  .checkbox-row input[type="checkbox"] { accent-color: var(--amber); width: 16px; height: 16px; }
+  .checkbox-row label { font-size: 13px; color: var(--white); cursor: pointer; margin: 0; letter-spacing: 0; text-transform: none; font-weight: 400; }
+
+  .modal-actions {
+    display: flex; justify-content: flex-end; gap: 10px;
+    margin-top: 24px; padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Past checks list */
+  .checks-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .check-row {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(30,58,95,0.5);
+    font-size: 13px;
+  }
+
+  .check-row:last-child { border-bottom: none; }
+  .check-date { color: var(--muted); font-size: 12px; min-width: 100px; }
+  .check-by { color: var(--white); flex: 1; }
+  .check-score {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 16px; font-weight: 700;
+  }
+
+  .score-good { color: var(--green); }
+  .score-warn { color: var(--amber); }
+  .score-bad { color: var(--red); }
+
+  /* Alert banner */
+  .alert {
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+
+  .alert-warn { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); color: var(--amber); }
+  .alert-info { background: rgba(0,180,216,0.08); border: 1px solid rgba(0,180,216,0.2); color: var(--teal); }
+  .alert-err { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: var(--red); }
+  .alert-ok { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: var(--green); }
+
+  /* Loading */
+  .loading {
+    text-align: center; padding: 60px 20px;
+    color: var(--muted); font-size: 14px;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--amber);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 12px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Tabs */
+  .tabs {
+    display: flex; gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+
+  .tab-btn {
+    padding: 10px 20px;
+    background: none; border: none;
+    color: var(--muted); font-family: 'Barlow', sans-serif;
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 0.2s;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+
+  .tab-btn:hover { color: var(--white); }
+  .tab-btn.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Hidden/show */
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- Auth overlay -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="badge">🔧</div>
+      <h2>Station Tools</h2>
+      <p>EASSy CLS Asset Management</p>
+    </div>
+    <div id="authLoginForm">
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="loginEmail" placeholder="your@email.com" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn btn-amber" style="width:100%;justify-content:center;" onclick="doLogin()">Sign In</button>
+      <div class="auth-msg" id="loginMsg"></div>
+      <div style="text-align:center;margin-top:14px;">
+        <span style="font-size:12px;color:var(--muted);">No account? </span>
+        <button class="btn-ghost" style="font-size:12px;padding:0;color:var(--amber);" onclick="showRegister()">Register</button>
+      </div>
+    </div>
+    <div id="authRegisterForm" class="hidden">
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="regName" placeholder="Your Name">
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="regEmail" placeholder="your@email.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="regPass" placeholder="Min. 6 characters">
+      </div>
+      <div class="form-group">
+        <label>Your Station</label>
+        <select id="regStation">
+          <option value="">Select station...</option>
+          <option value="MNZ">MNZ — Mtunzini</option>
+          <option value="MPT">MPT — Maputo</option>
+          <option value="DES">DES — Dar es Salaam</option>
+          <option value="MBS">MBS — Mombasa</option>
+          <option value="MGD">MGD — Mogadishu</option>
+          <option value="DBT">DBT — Djibouti</option>
+          <option value="PSD">PSD — Port Sudan</option>
+          <option value="TLR">TLR — Toliary</option>
+          <option value="MRN">MRN — Moroni</option>
+        </select>
+      </div>
+      <button class="btn btn-amber" style="width:100%;justify-content:center;" onclick="doRegister()">Create Account</button>
+      <div class="auth-msg" id="regMsg"></div>
+      <div style="text-align:center;margin-top:14px;">
+        <button class="btn-ghost" style="font-size:12px;padding:0;color:var(--amber);" onclick="showLogin()">← Back to Sign In</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Tool Modal -->
+<div class="modal-overlay" id="addToolModal">
+  <div class="modal">
+    <h3>➕ Add Tool to Inventory</h3>
+    <div class="modal-grid">
+      <div class="form-row full">
+        <label>Tool Description *</label>
+        <input type="text" id="newToolDesc" placeholder="e.g. Cable tension gauge">
+      </div>
+      <div class="form-row">
+        <label>Model / Part No.</label>
+        <input type="text" id="newToolModel" placeholder="e.g. CTG-500">
+      </div>
+      <div class="form-row">
+        <label>Manufacturer / Make</label>
+        <input type="text" id="newToolMake" placeholder="e.g. Fluke">
+      </div>
+      <div class="form-row">
+        <label>Serial Number</label>
+        <input type="text" id="newToolSerial" placeholder="Optional">
+      </div>
+      <div class="form-row">
+        <label>Qty Issued (Standard)</label>
+        <input type="number" id="newToolQtyIssued" value="1" min="1">
+      </div>
+      <div class="form-row">
+        <label>Qty Currently In Hand</label>
+        <input type="number" id="newToolQtyHand" value="1" min="0">
+      </div>
+      <div class="form-row full">
+        <div class="checkbox-row">
+          <input type="checkbox" id="newToolPowered">
+          <label for="newToolPowered">⚡ This tool requires mains power or batteries</label>
+        </div>
+      </div>
+      <div class="form-row full">
+        <label>Notes / Location</label>
+        <textarea id="newToolNotes" rows="2" placeholder="Optional notes about this tool..."></textarea>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAddTool()">Cancel</button>
+      <button class="btn btn-amber" onclick="saveNewTool()">Add to Inventory</button>
+    </div>
+  </div>
+</div>
+
+<!-- Submit Check Confirmation Modal -->
+<div class="modal-overlay" id="submitCheckModal">
+  <div class="modal" style="max-width:420px;">
+    <h3>✅ Submit 6-Monthly Check</h3>
+    <p style="color:var(--muted);font-size:13px;margin-bottom:20px;line-height:1.6;">
+      You are about to submit the 6-monthly tools check for <strong id="submitStationName" style="color:var(--amber);">—</strong>. 
+      Please review before submitting — this record will be locked after 2 hours.
+    </p>
+    <div id="submitSummary" style="background:var(--input-bg);border-radius:10px;padding:16px;margin-bottom:20px;font-size:13px;"></div>
+    <div class="form-row">
+      <label>Supervisor Remarks (optional)</label>
+      <textarea id="submitRemarks" rows="2" placeholder="Any overall notes for this check..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeSubmitModal()">Cancel</button>
+      <button class="btn btn-green" onclick="finalSubmit()">Confirm & Submit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Page header -->
+<header class="page-header">
+  <a href="home.html" class="back-btn">← Portal</a>
+  <div class="header-sep"></div>
+  <div class="header-icon">🔧</div>
+  <div class="header-title">Station Tools</div>
+  <div class="header-spacer"></div>
+  <div class="login-area" id="loginArea" style="display:none;">
+    <span class="user-pill" id="userPill">—</span>
+    <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
+  </div>
+</header>
+
+<!-- Main content -->
+<div class="content" id="mainContent" style="display:none;">
+
+  <!-- Station selector -->
+  <div class="station-bar">
+    <span class="station-label">Station:</span>
+    <div class="station-chips" id="stationChips">
+      <button class="station-chip" onclick="selectStation('MNZ','🇿🇦')">🇿🇦 MNZ</button>
+      <button class="station-chip" onclick="selectStation('MPT','🇲🇿')">🇲🇿 MPT</button>
+      <button class="station-chip" onclick="selectStation('DES','🇹🇿')">🇹🇿 DES</button>
+      <button class="station-chip" onclick="selectStation('MBS','🇰🇪')">🇰🇪 MBS</button>
+      <button class="station-chip" onclick="selectStation('MGD','🇸🇴')">🇸🇴 MGD</button>
+      <button class="station-chip" onclick="selectStation('DBT','🇩🇯')">🇩🇯 DBT</button>
+      <button class="station-chip" onclick="selectStation('PSD','🇸🇩')">🇸🇩 PSD</button>
+      <button class="station-chip" onclick="selectStation('TLR','🇲🇬')">🇲🇬 TLR</button>
+      <button class="station-chip" onclick="selectStation('MRN','🇰🇲')">🇰🇲 MRN</button>
+    </div>
+  </div>
+
+  <!-- Content area -->
+  <div id="stationContent">
+    <div class="alert alert-info">
+      ℹ️ Select a station above to view and manage its tool inventory.
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── CONFIG ───
+const SUPABASE_URL = 'https://wpblebjftxcdfrwwguti.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmxlYmpmdHhjZGZyd3dndXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ0NDE1NzMsImV4cCI6MjA2MDAxNzU3M30.OtAkTMZ9pZM52gVPpgkROatAjGmSGeyrmVF85i9MFCA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ─── ADMIN LIST ───
+const ADMIN_WHITELIST = {
+  'MRN': 'assad.comorescables@outlook.com',
+  'TLR': 'johary.ramboa@telma.mg',
+  'DBT': 'farah.abdi@djibtel.dj',
+  'PSD': 'abdelhameeda@sudatel.sd',
+  'MGD': 'girde@dalkomsomalia.com',
+  'MBS': 'totieno@telkom.co.ke',
+  'MNZ': 'waynee@openserve.co.za',
+  'MPT': 'nhiuane@tmcel.mz',
+  'DES': 'omar.said@yas.co.tz',
+  'SUPER': 'verne.steyn@wiocc.net'
+};
+
+// ─── MASTER TOOL LIST (109 items from EASSy template) ───
+const MASTER_TOOLS = [{"no":1,"description":"25m extension electric lead","model":"23012515V","qty_issued":1},{"no":2,"description":"6 partition plastic box","model":"230V6","qty_issued":1},{"no":3,"description":"Adaptor","model":"AME.B4","qty_issued":1},{"no":4,"description":"Adaptor French/US","model":"ADP-FR/US","qty_issued":1},{"no":5,"description":"Antistatic kit","model":"31-909-8501/31-560-0501-UCSKI1","qty_issued":2},{"no":6,"description":"Armoured male RJ45 connector","model":"920886","qty_issued":10},{"no":7,"description":"Automatic side-entry stripper","model":"04010002000-4010E","qty_issued":1},{"no":8,"description":"Bit for soldering iron","model":"54200799","qty_issued":2},{"no":9,"description":"Bit for soldering iron","model":"54202799","qty_issued":2},{"no":10,"description":"Bit for soldering iron","model":"54203899","qty_issued":2},{"no":11,"description":"Centre punch","model":"256.6","qty_issued":1},{"no":12,"description":"Coated-wire stripper","model":"173.A","qty_issued":1},{"no":13,"description":"Coaxial base tightening key","model":"SX 6680010","qty_issued":1},{"no":14,"description":"coaxial ferule crimper","model":"ACETOOL3","qty_issued":1},{"no":15,"description":"Cold chisel","model":"7240200001","qty_issued":1},{"no":16,"description":"Crimping Telecom RJ","model":"30696","qty_issued":1},{"no":17,"description":"Crimping tool","model":"MP13","qty_issued":1},{"no":18,"description":"Crowbar-case opener","model":"7185600001","qty_issued":1},{"no":19,"description":"Daniels central contact crimper","model":"M22520/2-01","qty_issued":1},{"no":20,"description":"Daniels central contact crimper","model":"M225202/2-06","qty_issued":1},{"no":21,"description":"Daniels central contact crimper","model":"M22520/2-09","qty_issued":1},{"no":22,"description":"Diagonal cutter microte-tech","model":"405.10MT","qty_issued":1},{"no":23,"description":"Digital multimeter meter with protection","model":"MX21E","qty_issued":1},{"no":24,"description":"Drilling machine SDS + 2 electric battery+ charger +chuck","model":"0603951J01","qty_issued":1},{"no":25,"description":"Drilling machine SDS + chuck + adapter","model":"611250401","qty_issued":1},{"no":26,"description":"Electrical adapter","model":"ADPT-H","qty_issued":1},{"no":27,"description":"Electrician knife","model":"843","qty_issued":1},{"no":28,"description":"Electrician scissors","model":"2518T-12.5","qty_issued":1},{"no":29,"description":"Facom round machine shark screw driver 3.5x100","model":"AR.3,5*100","qty_issued":1},{"no":30,"description":"Facom round machine shark screw driver 5.5x150","model":"AR.5,5*150","qty_issued":1},{"no":31,"description":"File flat bastard cut PAM B-200","model":"PB20MP","qty_issued":1},{"no":32,"description":"Fitting tool for plastic cable-ties - Cable tie cutter","model":"7500311","qty_issued":2},{"no":33,"description":"Flat brush with 40mm bristles","model":"891-40","qty_issued":1},{"no":34,"description":"Hacksaw","model":"603E","qty_issued":1},{"no":35,"description":"File Half round bastard file DRD B250","model":"MB25MP","qty_issued":1},{"no":36,"description":"Hand tool ALCATEL for I.D.C","model":"1AB01604001","qty_issued":1},{"no":37,"description":"Hand tool for I.D.C","model":"SX23455","qty_issued":1},{"no":38,"description":"Hand tool Krone","model":"6417205501LSA+","qty_issued":1},{"no":39,"description":"Heavy duty end nippers - Snipe cutters","model":"495A.25EL","qty_issued":1},{"no":40,"description":"Hexagonal keys 3mm","model":"83.SH3","qty_issued":1},{"no":41,"description":"Hexagonal keys 5mm","model":"83.SH5","qty_issued":1},{"no":42,"description":"Hexagonal keys 6mm","model":"83.SH6","qty_issued":1},{"no":43,"description":"Hexagonal keys 8mm","model":"83.SH8","qty_issued":1},{"no":44,"description":"High speed BDR plugs black colour","model":"R941460/BDR N","qty_issued":6},{"no":45,"description":"High speed BDR plugs red colour","model":"RS941461/BDR R","qty_issued":6},{"no":46,"description":"Hole saw set","model":"62941","qty_issued":1},{"no":47,"description":"Hot air blower - heat Gun","model":"HL1810","qty_issued":1},{"no":48,"description":"Inking ribbon breadth 12mm","model":"12mm FBIN/TZ231","qty_issued":2},{"no":49,"description":"Inking ribbon breadth 6mm","model":"6mm FBIN/T6Z211","qty_issued":5},{"no":50,"description":"Inking ribbon breadth 9mm","model":"9mm FBIN/TZ211","qty_issued":10},{"no":51,"description":"Jaws for 4010E automatic side entry stripper","model":"4010628000","qty_issued":1},{"no":52,"description":"Jaws for MP13-10","model":"MP13-10","qty_issued":1},{"no":53,"description":"Jaws for MP13-16","model":"MP13-16","qty_issued":1},{"no":54,"description":"Jaws for Mp13-25","model":"MP13-25","qty_issued":1},{"no":55,"description":"Jaws for MP13-50","model":"MP1350","qty_issued":1},{"no":56,"description":"Lock grip pliers - Vice Grip","model":"511","qty_issued":2},{"no":57,"description":"Masonry SDS drill 4x50x110","model":"1618596231","qty_issued":2},{"no":58,"description":"masonry SDC drill 8x100x160","model":"1618596173","qty_issued":2},{"no":59,"description":"Masonry SDS drill 12x100x160","model":"1618596181","qty_issued":2},{"no":60,"description":"Masonry SDS drill 10x100x160","model":"1618596177","qty_issued":2},{"no":61,"description":"Masonry SDS drill 14x150x210","model":"1618596270","qty_issued":2},{"no":62,"description":"Masonry SDS drill 16x150x210","model":"2608596185","qty_issued":2},{"no":63,"description":"Masonry SDS drill 18x250x300","model":"1618596319","qty_issued":2},{"no":64,"description":"Masonry SDS drill 20x250x300","model":"1618596262","qty_issued":2},{"no":65,"description":"Masonry SDS drill 6x100x160","model":"1618596167","qty_issued":2},{"no":66,"description":"Matrix socket set 1/4 drive","model":"R.420P","qty_issued":1},{"no":67,"description":"Measuring tools for construction - Square","model":"DELA 1234.03","qty_issued":1},{"no":68,"description":"Mini-wrapping tool","model":"12419","qty_issued":1},{"no":69,"description":"Nail puller - crow bar","model":"7192400001","qty_issued":1},{"no":70,"description":"Network modular cable tester + Battery","model":"6889276","qty_issued":1},{"no":71,"description":"Offset combination wrench 10mm","model":"41.1","qty_issued":1},{"no":72,"description":"Offset combination wrench 13mm","model":"41.13","qty_issued":1},{"no":73,"description":"Offset combination wrench 14mm","model":"41.14","qty_issued":2},{"no":74,"description":"Offset combination wrench 16mm","model":"41.16","qty_issued":1},{"no":75,"description":"Offset combination wrench 17mm","model":"41.17","qty_issued":2},{"no":76,"description":"Offset combination wrench 19mm","model":"41.19","qty_issued":2},{"no":77,"description":"Offset combination wrench 21mm","model":"41.21","qty_issued":2},{"no":78,"description":"Offset combination wrench 24mm","model":"41.24","qty_issued":2},{"no":79,"description":"Offset torx T8","model":"","qty_issued":1},{"no":80,"description":"Offset torx T9","model":"","qty_issued":1},{"no":81,"description":"Open tools NEAB","model":"","qty_issued":1},{"no":82,"description":"Pack of ten off blades - hacksaw","model":"844.S9L10","qty_issued":1},{"no":83,"description":"Padlock + security Combination lock","model":"CITY35-2/02042101","qty_issued":1},{"no":84,"description":"Passage RJ45 female-female","model":"902801","qty_issued":1},{"no":85,"description":"Pop Riveting tool","model":"200H.32","qty_issued":1},{"no":86,"description":"Protective goggles","model":"10040","qty_issued":1},{"no":87,"description":"Round bastard file","model":"RB15MP","qty_issued":1},{"no":88,"description":"Screw drivers for slotted heads 5.5x40","model":"ARB.5,5*40","qty_issued":1},{"no":89,"description":"Screwdriver Phillips heads PH2","model":"AP.2*100","qty_issued":2},{"no":90,"description":"Screwdriver for TORX No.8","model":"ANX8X50","qty_issued":1},{"no":91,"description":"Screwdrivers Phillips heads PH1","model":"AP.1*100","qty_issued":1},{"no":92,"description":"Scribe","model":"234","qty_issued":1},{"no":93,"description":"Shockproof level MHL 600mm","model":"1-42-214","qty_issued":1},{"no":94,"description":"Slip-joint multi grip pliers - Water pump pliers","model":"180.CPE","qty_issued":1},{"no":95,"description":"Soldering iron","model":"56103699","qty_issued":1},{"no":96,"description":"Steel tape measure (5m)","model":"893.519","qty_issued":1},{"no":97,"description":"Stepped bit","model":"229A.3","qty_issued":1},{"no":98,"description":"Straight half round nose pliers - Miniture longnose pliers","model":"422.MT","qty_issued":1},{"no":99,"description":"Stripping tool","model":"456SP00","qty_issued":1},{"no":100,"description":"Stripping tool","model":"554SP00","qty_issued":1},{"no":101,"description":"Test clip HD30 black","model":"93930113100","qty_issued":6},{"no":102,"description":"Test clip HD30 red","model":"930113101","qty_issued":6},{"no":103,"description":"Titler (label printer)","model":"PTOUCH2460","qty_issued":1},{"no":104,"description":"Tool chest (large steel)","model":"CECO4AP","qty_issued":1},{"no":105,"description":"Torx keys set","model":"89.JP8L","qty_issued":1},{"no":106,"description":"Twist drill set - HSS steel drill set","model":"E25/8020017","qty_issued":1},{"no":107,"description":"Variable opening wrenches - Shifting Spanner 250mm","model":"113A.10C","qty_issued":1},{"no":108,"description":"Wire cutter","model":"8365-02300","qty_issued":1},{"no":109,"description":"Wooden Mallet","model":"368500201","qty_issued":1}];
+
+// Tools that require power checks
+const POWERED_NOS = new Set([1,8,9,10,24,25,26,27,28,47,57,58,59,60,61,62,63,64,65,95,103,106]);
+
+// ─── STATE ───
+let currentUser = null;
+let currentStation = null;
+let userProfile = null;
+let inventory = []; // station-specific inventory
+let checkMode = false;
+let checkData = {}; // toolId -> check results
+
+// ─── INIT ───
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    await handleSession(session);
+  }
+
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (session) await handleSession(session);
+    else showAuthOverlay();
+  });
+}
+
+async function handleSession(session) {
+  currentUser = session.user;
+  const { data: profile } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  userProfile = profile;
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('loginArea').style.display = 'flex';
+  document.getElementById('userPill').textContent = (userProfile?.full_name || currentUser.email.split('@')[0]) + ' · ' + (userProfile?.station_code || '—');
+  // Auto-select user's station
+  if (userProfile?.station_code) selectStation(userProfile.station_code, getFlag(userProfile.station_code));
+}
+
+function showAuthOverlay() {
+  document.getElementById('authOverlay').style.display = 'flex';
+  document.getElementById('mainContent').style.display = 'none';
+  document.getElementById('loginArea').style.display = 'none';
+}
+
+function getFlag(code) {
+  const flags = {MNZ:'🇿🇦',MPT:'🇲🇿',DES:'🇹🇿',MBS:'🇰🇪',MGD:'🇸🇴',DBT:'🇩🇯',PSD:'🇸🇩',TLR:'🇲🇬',MRN:'🇰🇲'};
+  return flags[code] || '🌍';
+}
+
+function isAdmin() {
+  if (!currentUser || !userProfile) return false;
+  const email = currentUser.email;
+  if (email === ADMIN_WHITELIST.SUPER) return true;
+  return email === ADMIN_WHITELIST[userProfile.station_code];
+}
+
+function canEditStation(code) {
+  if (!currentUser || !userProfile) return false;
+  if (currentUser.email === ADMIN_WHITELIST.SUPER) return true;
+  return userProfile.station_code === code && isAdmin();
+}
+
+// ─── AUTH ───
+function showRegister() {
+  document.getElementById('authLoginForm').classList.add('hidden');
+  document.getElementById('authRegisterForm').classList.remove('hidden');
+}
+function showLogin() {
+  document.getElementById('authRegisterForm').classList.add('hidden');
+  document.getElementById('authLoginForm').classList.remove('hidden');
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  document.getElementById('loginMsg').textContent = 'Signing in...';
+  document.getElementById('loginMsg').className = 'auth-msg';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) {
+    document.getElementById('loginMsg').textContent = error.message;
+  }
+}
+
+async function doRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPass').value;
+  const station = document.getElementById('regStation').value;
+  const msg = document.getElementById('regMsg');
+  if (!name || !email || !pass || !station) { msg.textContent = 'Please fill all fields.'; return; }
+  msg.textContent = 'Creating account...'; msg.className = 'auth-msg';
+  const { data, error } = await sb.auth.signUp({
+    email, password: pass,
+    options: { data: { full_name: name, station_code: station },
+      emailRedirectTo: 'https://verne-steyn.github.io/Eassy-cls/tools.html' }
+  });
+  if (error) { msg.textContent = error.message; return; }
+  if (data.user) {
+    await sb.from('profiles').upsert({ id: data.user.id, full_name: name, email, station_code: station, role: 'user' });
+    msg.className = 'auth-msg success';
+    msg.textContent = 'Account created! Check your email to confirm.';
+  }
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  showAuthOverlay();
+}
+
+// ─── STATION SELECTION ───
+async function selectStation(code, flag) {
+  currentStation = code;
+  document.querySelectorAll('.station-chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.station-chip').forEach(c => {
+    if (c.textContent.includes(code)) c.classList.add('active');
+  });
+  await renderStationContent();
+}
+
+async function renderStationContent() {
+  const el = document.getElementById('stationContent');
+  el.innerHTML = `<div class="loading"><div class="spinner"></div><br>Loading ${currentStation} inventory...</div>`;
+
+  // Fetch inventory from Supabase
+  const { data: inv, error } = await sb.from('tools_inventory')
+    .select('*').eq('station_code', currentStation).order('tool_no');
+
+  if (error && error.code !== 'PGRST116') {
+    // Table may not exist yet — show setup prompt
+    el.innerHTML = renderSetupPrompt();
+    return;
+  }
+
+  inventory = inv || [];
+
+  // Fetch last check
+  const { data: lastChecks } = await sb.from('tools_checks')
+    .select('*').eq('station_code', currentStation)
+    .order('check_date', { ascending: false }).limit(5);
+
+  el.innerHTML = renderStationDashboard(lastChecks || []);
+  attachCheckSelectListeners();
+}
+
+function renderSetupPrompt() {
+  return `
+    <div class="alert alert-warn">
+      ⚠️ The tools_inventory table does not exist yet in Supabase. 
+      Please create the required tables (see setup instructions).
+    </div>
+    <div class="alert alert-info">
+      📋 <strong>Tables required:</strong> tools_inventory, tools_checks
+    </div>
+  `;
+}
+
+function renderStationDashboard(lastChecks) {
+  const flag = getFlag(currentStation);
+  const stationNames = {MNZ:'Mtunzini',MPT:'Maputo',DES:'Dar es Salaam',MBS:'Mombasa',MGD:'Mogadishu',DBT:'Djibouti',PSD:'Port Sudan',TLR:'Toliary',MRN:'Moroni'};
+  const canEdit = canEditStation(currentStation);
+
+  // Stats
+  const totalTools = inventory.length;
+  const inHand = inventory.filter(t => t.qty_in_hand >= t.qty_issued).length;
+  const missing = inventory.filter(t => t.qty_in_hand < t.qty_issued).length;
+  const powered = inventory.filter(t => t.is_powered).length;
+
+  let lastCheckDate = '—';
+  if (lastChecks.length > 0) {
+    lastCheckDate = new Date(lastChecks[0].check_date).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'});
+  }
+
+  // Due date calc: 6 months from last check
+  let dueAlert = '';
+  if (lastChecks.length > 0) {
+    const last = new Date(lastChecks[0].check_date);
+    const due = new Date(last);
+    due.setMonth(due.getMonth() + 6);
+    const now = new Date();
+    const daysUntil = Math.round((due - now) / 86400000);
+    if (daysUntil < 0) {
+      dueAlert = `<div class="alert alert-err">⚠️ 6-Monthly check is OVERDUE by ${Math.abs(daysUntil)} days. Last check: ${lastCheckDate}</div>`;
+    } else if (daysUntil <= 30) {
+      dueAlert = `<div class="alert alert-warn">🔔 6-Monthly check due in ${daysUntil} days (${due.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})})</div>`;
+    }
+  } else {
+    dueAlert = `<div class="alert alert-warn">📋 No 6-monthly check has been recorded for this station yet.</div>`;
+  }
+
+  return `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+      <span style="font-size:32px;">${flag}</span>
+      <div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;letter-spacing:1px;color:var(--amber);">${currentStation} — ${stationNames[currentStation]}</div>
+        <div style="font-size:12px;color:var(--muted);">Station Tools Inventory · Last check: ${lastCheckDate}</div>
+      </div>
+    </div>
+
+    ${dueAlert}
+
+    <div class="stats-strip">
+      <div class="stat-card amber">
+        <div class="stat-label">Total Tools</div>
+        <div class="stat-value">${totalTools}</div>
+        <div class="stat-sub">in inventory</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Full Stock</div>
+        <div class="stat-value">${inHand}</div>
+        <div class="stat-sub">qty OK</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Missing / Short</div>
+        <div class="stat-value">${missing}</div>
+        <div class="stat-sub">needs attention</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-label">Powered Tools</div>
+        <div class="stat-value">${powered}</div>
+        <div class="stat-sub">require power check</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="toolbar-title">Tool Inventory</div>
+      <div class="search-box">
+        <input type="text" placeholder="Search tools..." id="toolSearch" oninput="filterTools()">
+      </div>
+      ${canEdit ? `
+        <button class="btn btn-outline btn-sm" onclick="seedMasterTools()" title="Load EASSy standard 109-tool list into this station's inventory">⬇ Load Master List</button>
+        <button class="btn btn-amber btn-sm" onclick="openAddTool()">➕ Add Tool</button>
+      ` : ''}
+      ${canEdit && !checkMode ? `<button class="btn btn-green btn-sm" onclick="startCheck()">▶ Start 6-Monthly Check</button>` : ''}
+      ${checkMode ? `
+        <button class="btn btn-red btn-sm" onclick="cancelCheck()">✕ Cancel Check</button>
+        <button class="btn btn-green" onclick="openSubmitModal()">✅ Submit Check</button>
+      ` : ''}
+    </div>
+
+    ${checkMode ? `
+      <div class="check-banner active">
+        <div class="check-banner-icon">📋</div>
+        <div class="check-banner-text">
+          <strong>6-Monthly Check in Progress</strong>
+          <span>For each tool: confirm qty in hand, condition, and power/cord status where applicable. Submit when complete.</span>
+        </div>
+      </div>
+    ` : ''}
+
+    <div class="tools-panel ${checkMode ? 'check-mode' : ''}">
+      <div class="panel-header">
+        <h3>📦 Standard Inventory</h3>
+        <span class="panel-badge" id="invCount">${totalTools} tools</span>
+      </div>
+      <div style="overflow-x:auto;">
+        <table id="toolsTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Tool Description</th>
+              <th>Model</th>
+              <th>Qty Issued</th>
+              <th class="inventory-only">Qty In Hand</th>
+              <th class="inventory-only">Status</th>
+              <th class="check-field">Qty Confirmed</th>
+              <th class="check-field">Condition</th>
+              <th class="check-field">Cord/Power</th>
+              <th class="check-field">Notes</th>
+              ${canEdit ? '<th class="inventory-only">Actions</th>' : ''}
+            </tr>
+          </thead>
+          <tbody id="toolsBody">
+            ${renderToolRows(inventory, canEdit)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    ${lastChecks.length > 0 ? `
+      <br>
+      <div class="checks-panel">
+        <div class="panel-header">
+          <h3>📅 Previous 6-Monthly Checks</h3>
+          <span class="panel-badge">${lastChecks.length} records</span>
+        </div>
+        ${lastChecks.map(c => {
+          const score = c.items_ok && c.items_total ? Math.round(c.items_ok/c.items_total*100) : null;
+          const scoreClass = score === null ? '' : score >= 90 ? 'score-good' : score >= 70 ? 'score-warn' : 'score-bad';
+          return `<div class="check-row">
+            <span class="check-date">${new Date(c.check_date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</span>
+            <span class="check-by">${c.checked_by || '—'}</span>
+            ${score !== null ? `<span class="check-score ${scoreClass}">${score}%</span>` : '<span class="check-score score-warn">—</span>'}
+            <span style="font-size:11px;color:var(--muted);">${c.items_ok||0}/${c.items_total||0} OK</span>
+            ${c.remarks ? `<span style="font-size:11px;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${c.remarks}</span>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    ` : ''}
+  `;
+}
+
+function renderToolRows(tools, canEdit) {
+  if (tools.length === 0) {
+    return `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">
+      No tools in inventory. ${canEdit ? 'Use "Load Master List" or "Add Tool" to get started.' : ''}
+    </td></tr>`;
+  }
+
+  return tools.map(t => {
+    const inHand = t.qty_in_hand ?? 0;
+    const issued = t.qty_issued ?? 1;
+    const ok = inHand >= issued;
+    const isPowered = t.is_powered;
+    const statusDot = ok ? '<span class="status-dot dot-green"></span>' : (inHand === 0 ? '<span class="status-dot dot-red"></span>' : '<span class="status-dot dot-amber"></span>');
+    const statusText = ok ? 'OK' : (inHand === 0 ? 'Missing' : `Short (${inHand}/${issued})`);
+    const cd = checkData[t.id] || {};
+
+    return `<tr data-tool-id="${t.id}" data-search="${t.description.toLowerCase()} ${t.model?.toLowerCase()||''}">
+      <td class="tool-no">${t.tool_no}</td>
+      <td class="tool-desc">
+        ${t.description}
+        ${isPowered ? '<div class="powered-indicator">⚡ Power check req.</div>' : ''}
+        ${t.is_custom ? '<div class="powered-indicator" style="color:var(--teal);">✦ Custom</div>' : ''}
+      </td>
+      <td class="tool-model">${t.model || '—'}</td>
+      <td><span class="qty-badge">${issued}</span></td>
+      <td class="inventory-only">
+        ${canEdit ? `<input type="number" class="check-input" style="width:60px;" value="${inHand}" min="0" onchange="updateQty('${t.id}',this.value)">` : `<span class="qty-badge" style="color:${ok?'var(--green)':'var(--red)'};">${inHand}</span>`}
+      </td>
+      <td class="inventory-only">${statusDot} ${statusText}</td>
+
+      <!-- CHECK MODE FIELDS -->
+      <td class="check-field">
+        <input type="number" class="check-input" style="width:60px;" value="${cd.qty_confirmed ?? inHand}" min="0" 
+          onchange="setCheck('${t.id}','qty_confirmed',this.value)" placeholder="${issued}">
+      </td>
+      <td class="check-field">
+        <select class="check-select" onchange="setCheck('${t.id}','condition',this.value);styleSelect(this)">
+          <option value="">Select...</option>
+          <option value="Good" ${cd.condition==='Good'?'selected':''}>✅ Good</option>
+          <option value="Fair" ${cd.condition==='Fair'?'selected':''}>⚠️ Fair</option>
+          <option value="Damaged" ${cd.condition==='Damaged'?'selected':''}>❌ Damaged</option>
+          <option value="Missing" ${cd.condition==='Missing'?'selected':''}>🚫 Missing</option>
+        </select>
+      </td>
+      <td class="check-field">
+        ${isPowered ? `
+          <select class="check-select" onchange="setCheck('${t.id}','power_check',this.value);styleSelect(this)">
+            <option value="">Select...</option>
+            <option value="Pass" ${cd.power_check==='Pass'?'selected':''}>✅ Pass</option>
+            <option value="Fail" ${cd.power_check==='Fail'?'selected':''}>❌ Fail</option>
+            <option value="N/A" ${cd.power_check==='N/A'?'selected':''}>— N/A</option>
+          </select>
+        ` : '<span style="color:var(--muted);font-size:12px;">—</span>'}
+      </td>
+      <td class="check-field">
+        <input type="text" class="check-input" style="width:120px;" value="${cd.notes||''}" 
+          onchange="setCheck('${t.id}','notes',this.value)" placeholder="Notes...">
+      </td>
+
+      ${canEdit ? `<td class="inventory-only">
+        <button class="btn btn-ghost btn-sm" onclick="deleteTool('${t.id}')" title="Remove from inventory">🗑</button>
+      </td>` : ''}
+    </tr>`;
+  }).join('');
+}
+
+function attachCheckSelectListeners() {}
+
+function styleSelect(el) {
+  el.className = 'check-select';
+  const v = el.value;
+  if (v === 'Good' || v === 'Pass') el.classList.add('pass');
+  else if (v === 'Damaged' || v === 'Fail' || v === 'Missing') el.classList.add('fail');
+  else if (v === 'N/A') el.classList.add('na');
+}
+
+function filterTools() {
+  const q = document.getElementById('toolSearch')?.value.toLowerCase() || '';
+  document.querySelectorAll('#toolsBody tr[data-search]').forEach(row => {
+    row.style.display = q === '' || row.dataset.search.includes(q) ? '' : 'none';
+  });
+}
+
+// ─── CHECK MODE ───
+function startCheck() {
+  checkMode = true;
+  checkData = {};
+  inventory.forEach(t => {
+    checkData[t.id] = { qty_confirmed: t.qty_in_hand, condition: '', power_check: '', notes: '' };
+  });
+  renderStationContent();
+}
+
+function cancelCheck() {
+  checkMode = false;
+  checkData = {};
+  renderStationContent();
+}
+
+function setCheck(toolId, field, value) {
+  if (!checkData[toolId]) checkData[toolId] = {};
+  checkData[toolId][field] = value;
+}
+
+function openSubmitModal() {
+  const stationNames = {MNZ:'Mtunzini',MPT:'Maputo',DES:'Dar es Salaam',MBS:'Mombasa',MGD:'Mogadishu',DBT:'Djibouti',PSD:'Port Sudan',TLR:'Toliary',MRN:'Moroni'};
+  document.getElementById('submitStationName').textContent = `${currentStation} — ${stationNames[currentStation]}`;
+
+  const total = inventory.length;
+  let ok = 0, issues = 0, powerFails = 0;
+  inventory.forEach(t => {
+    const cd = checkData[t.id] || {};
+    if (cd.condition === 'Good') ok++;
+    else if (cd.condition === 'Damaged' || cd.condition === 'Missing') issues++;
+    if (t.is_powered && cd.power_check === 'Fail') powerFails++;
+  });
+
+  document.getElementById('submitSummary').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div>📦 <strong>Total tools:</strong> ${total}</div>
+      <div style="color:var(--green);">✅ <strong>Good condition:</strong> ${ok}</div>
+      <div style="color:var(--red);">⚠️ <strong>Issues found:</strong> ${issues}</div>
+      <div style="color:${powerFails>0?'var(--red)':'var(--green)'};">⚡ <strong>Power failures:</strong> ${powerFails}</div>
+    </div>
+  `;
+
+  document.getElementById('submitCheckModal').classList.add('open');
+}
+
+function closeSubmitModal() {
+  document.getElementById('submitCheckModal').classList.remove('open');
+}
+
+async function finalSubmit() {
+  const remarks = document.getElementById('submitRemarks').value;
+  const total = inventory.length;
+  let ok = 0;
+  inventory.forEach(t => {
+    const cd = checkData[t.id] || {};
+    if (cd.condition === 'Good') ok++;
+  });
+
+  const checkItems = inventory.map(t => ({
+    tool_id: t.id,
+    tool_no: t.tool_no,
+    description: t.description,
+    ...checkData[t.id]
+  }));
+
+  const { error } = await sb.from('tools_checks').insert({
+    station_code: currentStation,
+    check_date: new Date().toISOString(),
+    checked_by: userProfile?.full_name || currentUser.email,
+    items_ok: ok,
+    items_total: total,
+    remarks,
+    check_details: checkItems
+  });
+
+  if (error) {
+    alert('Error saving check: ' + error.message);
+    return;
+  }
+
+  closeSubmitModal();
+  checkMode = false;
+  checkData = {};
+  await renderStationContent();
+}
+
+// ─── INVENTORY MANAGEMENT ───
+function openAddTool() {
+  document.getElementById('addToolModal').classList.add('open');
+}
+
+function closeAddTool() {
+  document.getElementById('addToolModal').classList.remove('open');
+}
+
+async function saveNewTool() {
+  const desc = document.getElementById('newToolDesc').value.trim();
+  if (!desc) { alert('Tool description is required.'); return; }
+
+  const nextNo = inventory.length > 0 ? Math.max(...inventory.map(t => t.tool_no || 0)) + 1 : 1;
+
+  const { error } = await sb.from('tools_inventory').insert({
+    station_code: currentStation,
+    tool_no: nextNo,
+    description: desc,
+    model: document.getElementById('newToolModel').value.trim(),
+    make: document.getElementById('newToolMake').value.trim(),
+    serial_no: document.getElementById('newToolSerial').value.trim(),
+    qty_issued: parseInt(document.getElementById('newToolQtyIssued').value) || 1,
+    qty_in_hand: parseInt(document.getElementById('newToolQtyHand').value) || 0,
+    is_powered: document.getElementById('newToolPowered').checked,
+    notes: document.getElementById('newToolNotes').value.trim(),
+    is_custom: true
+  });
+
+  if (error) { alert('Error: ' + error.message); return; }
+
+  closeAddTool();
+  await renderStationContent();
+}
+
+async function updateQty(toolId, newQty) {
+  await sb.from('tools_inventory').update({ qty_in_hand: parseInt(newQty) || 0 }).eq('id', toolId);
+}
+
+async function deleteTool(toolId) {
+  if (!confirm('Remove this tool from the station inventory?')) return;
+  await sb.from('tools_inventory').delete().eq('id', toolId);
+  await renderStationContent();
+}
+
+async function seedMasterTools() {
+  if (!confirm(`This will add all 109 standard EASSy tools to ${currentStation}'s inventory. Existing tools will not be duplicated. Continue?`)) return;
+
+  // Get existing tool_nos to avoid duplicates
+  const existingNos = new Set(inventory.map(t => t.tool_no));
+  const toInsert = MASTER_TOOLS
+    .filter(t => !existingNos.has(t.no))
+    .map(t => ({
+      station_code: currentStation,
+      tool_no: t.no,
+      description: t.description,
+      model: t.model,
+      qty_issued: t.qty_issued,
+      qty_in_hand: 0,
+      is_powered: POWERED_NOS.has(t.no),
+      is_custom: false
+    }));
+
+  if (toInsert.length === 0) {
+    alert('All master tools are already in this station\'s inventory.');
+    return;
+  }
+
+  const { error } = await sb.from('tools_inventory').insert(toInsert);
+  if (error) { alert('Error: ' + error.message); return; }
+
+  await renderStationContent();
+}
+
+// Init
+init();
+</script>
+</body>
+</html>

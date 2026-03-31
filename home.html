@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EASSy CLS — Operations Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy-mid: #112240;
+    --navy-light: #1a3357;
+    --teal: #00b4d8;
+    --teal-dark: #0077a8;
+    --amber: #f59e0b;
+    --green: #10b981;
+    --red: #ef4444;
+    --white: #f0f4f8;
+    --muted: #8fa3bc;
+    --card-bg: #112240;
+    --border: #1e3a5f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--navy);
+    color: var(--white);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated ocean grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,180,216,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,180,216,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridDrift 20s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes gridDrift {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(60px); }
+  }
+
+  /* Cable route decorative line */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 50%;
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(to bottom, transparent, rgba(0,180,216,0.15) 30%, rgba(0,180,216,0.15) 70%, transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .portal-header {
+    position: relative;
+    z-index: 10;
+    padding: 32px 48px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,22,40,0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .logo-badge {
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(135deg, var(--teal-dark), var(--teal));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 0.5px;
+    color: var(--navy);
+    flex-shrink: 0;
+  }
+
+  .portal-title {
+    flex: 1;
+  }
+
+  .portal-title h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 26px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--white);
+    line-height: 1;
+  }
+
+  .portal-title p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  .header-date {
+    text-align: right;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .header-date strong {
+    display: block;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--teal);
+    letter-spacing: 1px;
+  }
+
+  /* Cable route indicator */
+  .cable-route {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 14px 48px;
+    background: rgba(17,34,64,0.6);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .cable-route::-webkit-scrollbar { display: none; }
+
+  .cable-station {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    white-space: nowrap;
+  }
+
+  .cable-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 8px var(--teal);
+    flex-shrink: 0;
+  }
+
+  .cable-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--muted);
+    padding: 0 8px;
+    text-transform: uppercase;
+  }
+
+  .cable-line {
+    flex: 1;
+    min-width: 24px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--teal), var(--teal-dark));
+    opacity: 0.4;
+  }
+
+  /* Main content */
+  .main {
+    position: relative;
+    z-index: 10;
+    padding: 48px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .section-heading {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 8px;
+  }
+
+  .section-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--white);
+    letter-spacing: 0.5px;
+    margin-bottom: 32px;
+  }
+
+  /* Module cards */
+  .modules-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-bottom: 56px;
+  }
+
+  @media (max-width: 900px) {
+    .modules-grid { grid-template-columns: 1fr; }
+    .main { padding: 24px; }
+    .portal-header { padding: 20px 24px; }
+    .cable-route { padding: 12px 24px; }
+  }
+
+  .module-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    text-decoration: none;
+    display: block;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+
+  .module-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 16px 16px 0 0;
+    transition: opacity 0.3s;
+  }
+
+  .module-card.routines::before { background: linear-gradient(90deg, var(--teal), #0096c7); }
+  .module-card.tools::before { background: linear-gradient(90deg, var(--amber), #d97706); }
+  .module-card.testequip::before { background: linear-gradient(90deg, var(--green), #059669); }
+
+  .module-card::after {
+    content: '';
+    position: absolute;
+    bottom: -60px; right: -60px;
+    width: 180px; height: 180px;
+    border-radius: 50%;
+    opacity: 0.04;
+    transition: all 0.4s ease;
+  }
+
+  .module-card.routines::after { background: var(--teal); }
+  .module-card.tools::after { background: var(--amber); }
+  .module-card.testequip::after { background: var(--green); }
+
+  .module-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255,255,255,0.12);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+
+  .module-card:hover::after {
+    opacity: 0.08;
+    transform: scale(1.2);
+  }
+
+  .module-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 26px;
+  }
+
+  .module-card.routines .module-icon { background: rgba(0,180,216,0.12); }
+  .module-card.tools .module-icon { background: rgba(245,158,11,0.12); }
+  .module-card.testequip .module-icon { background: rgba(16,185,129,0.12); }
+
+  .module-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .module-card.routines .module-name { color: var(--teal); }
+  .module-card.tools .module-name { color: var(--amber); }
+  .module-card.testequip .module-name { color: var(--green); }
+
+  .module-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+
+  .module-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .tag {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+
+  .module-card.routines .tag { color: var(--teal); border-color: rgba(0,180,216,0.25); background: rgba(0,180,216,0.06); }
+  .module-card.tools .tag { color: var(--amber); border-color: rgba(245,158,11,0.25); background: rgba(245,158,11,0.06); }
+  .module-card.testequip .tag { color: var(--green); border-color: rgba(16,185,129,0.25); background: rgba(16,185,129,0.06); }
+
+  .module-cta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .module-card.routines .module-cta { color: var(--teal); }
+  .module-card.tools .module-cta { color: var(--amber); }
+  .module-card.testequip .module-cta { color: var(--green); }
+
+  .cta-arrow {
+    transition: transform 0.2s;
+  }
+
+  .module-card:hover .cta-arrow { transform: translateX(6px); }
+
+  /* Stations overview */
+  .stations-section {
+    margin-top: 8px;
+  }
+
+  .stations-grid {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 12px;
+  }
+
+  @media (max-width: 1100px) {
+    .stations-grid { grid-template-columns: repeat(5, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .stations-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .station-tile {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 12px;
+    text-align: center;
+    transition: all 0.2s;
+    cursor: default;
+  }
+
+  .station-tile:hover {
+    border-color: var(--teal);
+    background: var(--navy-light);
+  }
+
+  .station-flag {
+    font-size: 28px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .station-code {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: 1.5px;
+    color: var(--teal);
+    margin-bottom: 2px;
+  }
+
+  .station-name {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.3px;
+  }
+
+  /* Footer */
+  .portal-footer {
+    position: relative;
+    z-index: 10;
+    margin-top: 40px;
+    padding: 20px 48px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .footer-brand {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .pulse {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+  }
+
+  /* Fade in animation */
+  .fade-in {
+    opacity: 0;
+    transform: translateY(16px);
+    animation: fadeIn 0.5s forwards;
+  }
+
+  @keyframes fadeIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .fade-in:nth-child(1) { animation-delay: 0.1s; }
+  .fade-in:nth-child(2) { animation-delay: 0.2s; }
+  .fade-in:nth-child(3) { animation-delay: 0.3s; }
+</style>
+</head>
+<body>
+
+<header class="portal-header">
+  <div class="logo-badge">EASSy</div>
+  <div class="portal-title">
+    <h1>Cable Landing Station — Operations Portal</h1>
+    <p>East Africa Submarine System · 9 Stations · Maintenance &amp; Asset Management</p>
+  </div>
+  <div class="header-date">
+    <strong id="live-date">—</strong>
+    <span id="live-time">—</span>
+  </div>
+</header>
+
+<!-- Cable route -->
+<div class="cable-route">
+  <div class="cable-station">
+    <div class="cable-dot"></div>
+    <span class="cable-label">MNZ</span>
+  </div>
+  <div class="cable-line"></div>
+  <div class="cable-station">
+    <div class="cable-dot"></div>
+    <span class="cable-label">MPT</span>
+  </div>
+  <div class="cable-line"></div>
+  <div class="cable-station">
+    <div class="cable-dot"></div>
+    <span class="cable-label">DES</span>
+  </div>
+  <div class="cable-line"></div>
+  <div class="cable-station">
+    <div class="cable-dot"></div>
+    <span class="cable-label">MBS</span>
+  </div>
+  <div class="cable-line"></div>
+  <div class="cable-station">
+    <div class="cable-dot"></div>
+    <span class="cable-label">MGD</span>
+  </div>
+  <div class="cable-line"></div>
+  <div class="cable-station">
+    <div class="cable-dot"></div>
+    <span class="cable-label">DBT</span>
+  </div>
+  <div class="cable-line"></div>
+  <div class="cable-station">
+    <div class="cable-dot"></div>
+    <span class="cable-label">PSD</span>
+  </div>
+  <div class="cable-line"></div>
+  <div class="cable-station">
+    <div class="cable-dot"></div>
+    <span class="cable-label">TLR</span>
+  </div>
+  <div class="cable-line"></div>
+  <div class="cable-station">
+    <div class="cable-dot"></div>
+    <span class="cable-label">MRN</span>
+  </div>
+</div>
+
+<main class="main">
+
+  <!-- Module selector -->
+  <div>
+    <div class="section-heading">Select Module</div>
+    <div class="section-title">What would you like to do?</div>
+  </div>
+
+  <div class="modules-grid">
+
+    <!-- Routines -->
+    <a href="index.html" class="module-card routines fade-in">
+      <div class="module-icon">📋</div>
+      <div class="module-name">Maintenance Routines</div>
+      <div class="module-desc">Daily, weekly, monthly and 6-monthly maintenance checks for all CLS equipment and facility systems.</div>
+      <div class="module-tags">
+        <span class="tag">Daily</span>
+        <span class="tag">Weekly</span>
+        <span class="tag">Monthly</span>
+        <span class="tag">6-Monthly</span>
+        <span class="tag">PFE</span>
+        <span class="tag">Opportunity</span>
+      </div>
+      <div class="module-cta">Open Routines <span class="cta-arrow">→</span></div>
+    </a>
+
+    <!-- Tools -->
+    <a href="tools.html" class="module-card tools fade-in">
+      <div class="module-icon">🔧</div>
+      <div class="module-name">Station Tools</div>
+      <div class="module-desc">Tool inventory management, 6-monthly physical checks, power supply and cord condition inspections per station.</div>
+      <div class="module-tags">
+        <span class="tag">Inventory</span>
+        <span class="tag">6-Monthly Check</span>
+        <span class="tag">Power / Cord</span>
+        <span class="tag">Custom Tools</span>
+      </div>
+      <div class="module-cta">Open Tools <span class="cta-arrow">→</span></div>
+    </a>
+
+    <!-- Test Equipment -->
+    <a href="testequip.html" class="module-card testequip fade-in">
+      <div class="module-icon">📡</div>
+      <div class="module-name">Test Equipment</div>
+      <div class="module-desc">Test equipment inventory, calibration tracking, 6-monthly functional checks, power and redundancy verification.</div>
+      <div class="module-tags">
+        <span class="tag">Calibration</span>
+        <span class="tag">6-Monthly Check</span>
+        <span class="tag">Power / PSU</span>
+        <span class="tag">Redundancy</span>
+      </div>
+      <div class="module-cta">Open Test Equip <span class="cta-arrow">→</span></div>
+    </a>
+
+  </div>
+
+  <!-- Stations -->
+  <div class="stations-section">
+    <div class="section-heading">Cable Landing Stations</div>
+    <div class="section-title" style="font-size:22px; margin-bottom:20px;">9 Active Stations</div>
+    <div class="stations-grid">
+      <div class="station-tile">
+        <div class="station-flag">🇿🇦</div>
+        <div class="station-code">MNZ</div>
+        <div class="station-name">Mtunzini</div>
+      </div>
+      <div class="station-tile">
+        <div class="station-flag">🇲🇿</div>
+        <div class="station-code">MPT</div>
+        <div class="station-name">Maputo</div>
+      </div>
+      <div class="station-tile">
+        <div class="station-flag">🇹🇿</div>
+        <div class="station-code">DES</div>
+        <div class="station-name">Dar es Salaam</div>
+      </div>
+      <div class="station-tile">
+        <div class="station-flag">🇰🇪</div>
+        <div class="station-code">MBS</div>
+        <div class="station-name">Mombasa</div>
+      </div>
+      <div class="station-tile">
+        <div class="station-flag">🇸🇴</div>
+        <div class="station-code">MGD</div>
+        <div class="station-name">Mogadishu</div>
+      </div>
+      <div class="station-tile">
+        <div class="station-flag">🇩🇯</div>
+        <div class="station-code">DBT</div>
+        <div class="station-name">Djibouti</div>
+      </div>
+      <div class="station-tile">
+        <div class="station-flag">🇸🇩</div>
+        <div class="station-code">PSD</div>
+        <div class="station-name">Port Sudan</div>
+      </div>
+      <div class="station-tile">
+        <div class="station-flag">🇲🇬</div>
+        <div class="station-code">TLR</div>
+        <div class="station-name">Toliary</div>
+      </div>
+      <div class="station-tile">
+        <div class="station-flag">🇰🇲</div>
+        <div class="station-code">MRN</div>
+        <div class="station-name">Moroni</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="portal-footer">
+  <div class="footer-brand">EASSy CLS Operations Portal</div>
+  <div><span class="pulse"></span>System Online · All 9 Stations</div>
+  <div>East Africa Submarine System</div>
+</footer>
+
+<script>
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('live-date').textContent =
+      now.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }).toUpperCase();
+    document.getElementById('live-time').textContent =
+      now.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', second:'2-digit' }) + ' UTC' +
+      (now.getTimezoneOffset() < 0 ? '+' : '-') +
+      String(Math.abs(now.getTimezoneOffset()/60)).padStart(2,'0');
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+</script>
+
+</body>
+</html>
