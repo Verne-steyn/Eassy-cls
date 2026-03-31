@@ -746,6 +746,16 @@ function renderStationDashboard(lastChecks) {
     dueAlert = `<div class="alert alert-warn">📋 No 6-monthly check has been recorded for this station yet.</div>`;
   }
 
+  // Missing tools alert
+  const missingTools = inventory.filter(t => t.qty_in_hand < t.qty_issued);
+  const missingAlert = missingTools.length > 0
+    ? `<div class="alert alert-err" style="cursor:pointer;" onclick="toggleMissingFilter()" title="Click to filter">
+        🔴 <strong>${missingTools.length} tool${missingTools.length>1?'s are':' is'} missing or short:</strong>
+        ${missingTools.slice(0,5).map(t => `<span style="display:inline-block;background:rgba(220,38,38,0.1);border-radius:4px;padding:1px 8px;margin:2px;font-size:11px;">${t.description} (has ${t.qty_in_hand}, needs ${t.qty_issued})</span>`).join('')}
+        ${missingTools.length > 5 ? `<span style="font-size:11px;color:var(--red);">+${missingTools.length-5} more — click to filter</span>` : ''}
+      </div>`
+    : '';
+
   return `
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
       <span style="font-size:32px;">${flag}</span>
@@ -756,6 +766,7 @@ function renderStationDashboard(lastChecks) {
     </div>
 
     ${dueAlert}
+    ${missingAlert}
 
     <div class="stats-strip">
       <div class="stat-card amber">
@@ -786,8 +797,14 @@ function renderStationDashboard(lastChecks) {
         <input type="text" placeholder="Search tools..." id="toolSearch" oninput="filterTools()">
       </div>
       ${canEdit ? `
-<button class="btn btn-amber btn-sm" onclick="openAddTool()">➕ Add Tool</button>
+        <button class="btn btn-amber btn-sm" onclick="openAddTool()">➕ Add Tool</button>
       ` : ''}
+      <button class="btn btn-outline btn-sm" id="missingFilterBtn" onclick="toggleMissingFilter()" title="Show only tools with missing or short quantities">
+        🔴 Show Missing Only
+      </button>
+      <button class="btn btn-outline btn-sm" onclick="downloadCheckSheet()" title="Download printable check sheet as CSV">
+        ⬇ Check Sheet (CSV)
+      </button>
       ${canEdit && !checkMode ? `<button class="btn btn-green btn-sm" onclick="startCheck()">▶ Start 6-Monthly Check</button>` : ''}
       ${checkMode ? `
         <button class="btn btn-red btn-sm" onclick="cancelCheck()">✕ Cancel Check</button>
@@ -936,6 +953,70 @@ function styleSelect(el) {
   if (v === 'Good' || v === 'Pass') el.classList.add('pass');
   else if (v === 'Damaged' || v === 'Fail' || v === 'Missing') el.classList.add('fail');
   else if (v === 'N/A') el.classList.add('na');
+}
+
+let missingFilterActive = false;
+
+function toggleMissingFilter() {
+  missingFilterActive = !missingFilterActive;
+  const btn = document.getElementById('missingFilterBtn');
+  if (btn) {
+    btn.style.background = missingFilterActive ? 'var(--red)' : '';
+    btn.style.color = missingFilterActive ? 'white' : '';
+    btn.style.borderColor = missingFilterActive ? 'var(--red)' : '';
+    btn.textContent = missingFilterActive ? '✅ Show All Tools' : '🔴 Show Missing Only';
+  }
+  document.querySelectorAll('#toolsBody tr[data-tool-id]').forEach(row => {
+    const toolId = row.dataset.toolId;
+    const tool = inventory.find(t => t.id === toolId);
+    if (!tool) return;
+    if (missingFilterActive) {
+      row.style.display = tool.qty_in_hand < tool.qty_issued ? '' : 'none';
+    } else {
+      row.style.display = '';
+    }
+  });
+}
+
+function downloadCheckSheet() {
+  const stationNames = {MNZ:'Mtunzini',MPT:'Maputo',DES:'Dar es Salaam',MBS:'Mombasa',MGD:'Mogadishu',DBT:'Djibouti',PSD:'Port Sudan',TLR:'Toliary',MRN:'Moroni'};
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+
+  const rows = [
+    [`EASSy CLS — Station Tools Check Sheet`],
+    [`Station: ${currentStation} — ${stationNames[currentStation]}`],
+    [`Date: ${dateStr}`],
+    [`Checked by:`],
+    [],
+    ['#', 'Tool Description', 'Model', 'Qty Issued', 'Qty In Hand', 'Qty Confirmed', 'Condition', 'Power/Cord Check', 'Notes']
+  ];
+
+  inventory.forEach(t => {
+    rows.push([
+      t.tool_no,
+      t.description,
+      t.model || '',
+      t.qty_issued,
+      t.qty_in_hand,
+      '',  // to fill in
+      '',  // Good / Fair / Damaged / Missing
+      t.is_powered ? '' : 'N/A',  // Pass / Fail / N/A
+      ''   // notes
+    ]);
+  });
+
+  const csv = rows.map(r =>
+    r.map(cell => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',')
+  ).join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `EASSy_Tools_Check_${currentStation}_${now.toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function filterTools() {
