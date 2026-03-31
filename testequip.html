@@ -599,6 +599,15 @@ async function renderStation() {
 
   inventory = inv || [];
 
+  // Auto-seed master list if inventory is empty
+  if (inventory.length === 0 && canEdit()) {
+    el.innerHTML = `<div class="loading"><div class="spinner"></div><br>Setting up ${currentStation} equipment...</div>`;
+    await autoSeedMaster();
+    const { data: inv2 } = await sb.from('testequip_inventory')
+      .select('*').eq('station_code', currentStation).order('equip_no');
+    inventory = inv2 || [];
+  }
+
   const { data: lastChecks } = await sb.from('testequip_checks')
     .select('*').eq('station_code', currentStation)
     .order('check_date', { ascending: false }).limit(5);
@@ -674,8 +683,7 @@ function buildStationHTML(lastChecks) {
     <div class="toolbar">
       <div class="toolbar-title">Equipment Inventory</div>
       ${editable ? `
-        <button class="btn btn-outline btn-sm" onclick="seedMaster()">⬇ Load Master List</button>
-        <button class="btn btn-green btn-sm" onclick="openAddEquip()">➕ Add Equipment</button>
+  <button class="btn btn-green btn-sm" onclick="openAddEquip()">➕ Add Equipment</button>
       ` : ''}
       ${editable && !checkMode ? `<button class="btn btn-green btn-sm" onclick="startCheck()">▶ Start 6-Monthly Check</button>` : ''}
       ${checkMode ? `
@@ -697,7 +705,7 @@ function buildStationHTML(lastChecks) {
     <div class="equip-grid ${checkMode ? 'check-mode-active' : ''}" id="equipGrid">
       ${inventory.length === 0 ? `
         <div class="alert alert-info" style="grid-column:1/-1;">
-          📦 No equipment registered yet. ${editable ? 'Use "Load Master List" or "Add Equipment" to begin.' : 'Contact your station admin to set up inventory.'}
+          📦 No equipment registered yet.
         </div>
       ` : inventory.map(e => renderEquipCard(e, editable)).join('')}
     </div>
@@ -946,6 +954,21 @@ async function saveSerial() {
 }
 
 // Seed master list
+async function autoSeedMaster() {
+  const toInsert = MASTER_EQUIP.map(e => ({
+    station_code: currentStation,
+    equip_no: e.no,
+    equipment: e.equipment,
+    description: e.description,
+    supplier: e.supplier,
+    is_powered: e.is_powered,
+    has_battery: e.has_battery,
+    redundancy: 'no',
+    is_custom: false
+  }));
+  await sb.from('testequip_inventory').insert(toInsert);
+}
+
 async function seedMaster() {
   if (!confirm(`Load all 13 standard EASSy test equipment items into ${currentStation}? Existing items won't be duplicated.`)) return;
   const existingNos = new Set(inventory.map(e => e.equip_no));
