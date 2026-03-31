@@ -467,6 +467,7 @@
     <strong id="live-date">—</strong>
     <span id="live-time">—</span>
   </div>
+  <div id="authBar" style="display:flex;align-items:center;gap:12px;margin-left:24px;"></div>
 </header>
 
 <!-- Cable route -->
@@ -528,7 +529,7 @@
   <div class="modules-grid">
 
     <!-- Routines -->
-    <a href="index.html" class="module-card routines fade-in">
+    <a href="index.html" class="module-card routines fade-in" onclick="return gotoModule(event,'index.html')">
       <div class="module-icon">📋</div>
       <div class="module-name">Maintenance Routines</div>
       <div class="module-desc">Daily, weekly, monthly and 6-monthly maintenance checks for all CLS equipment and facility systems.</div>
@@ -544,7 +545,7 @@
     </a>
 
     <!-- Tools -->
-    <a href="tools.html" class="module-card tools fade-in">
+    <a href="tools.html" class="module-card tools fade-in" onclick="return gotoModule(event,'tools.html')">
       <div class="module-icon">🔧</div>
       <div class="module-name">Station Tools</div>
       <div class="module-desc">Tool inventory management, 6-monthly physical checks, power supply and cord condition inspections per station.</div>
@@ -558,7 +559,7 @@
     </a>
 
     <!-- Test Equipment -->
-    <a href="testequip.html" class="module-card testequip fade-in">
+    <a href="testequip.html" class="module-card testequip fade-in" onclick="return gotoModule(event,'testequip.html')">
       <div class="module-icon">📡</div>
       <div class="module-name">Test Equipment</div>
       <div class="module-desc">Test equipment inventory, calibration tracking, 6-monthly functional checks, power and redundancy verification.</div>
@@ -630,11 +631,105 @@
 
 <footer class="portal-footer">
   <div class="footer-brand">EASSy CLS Operations Portal</div>
-  <div><span class="pulse"></span>System Online · All 9 Stations</div>
+  <div id="footer-status"><span class="pulse"></span>System Online · All 9 Stations</div>
   <div>East Africa Submarine System</div>
 </footer>
 
+<!-- Login Modal -->
+<div id="loginModal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(10,22,40,0.92);align-items:center;justify-content:center;">
+  <div style="background:#112240;border:1px solid #1e3a5f;border-radius:20px;padding:40px;width:380px;max-width:92vw;box-shadow:0 16px 48px rgba(0,0,0,0.4);">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="display:inline-block;width:56px;height:56px;background:linear-gradient(135deg,#0077a8,#00b4d8);border-radius:14px;line-height:56px;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;color:#0a1628;margin-bottom:12px;">EASSy</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#00b4d8;">Sign In</div>
+      <div style="font-size:12px;color:#8fa3bc;margin-top:4px;">EASSy CLS Operations Portal</div>
+    </div>
+    <div id="loginFormView">
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#8fa3bc;margin-bottom:6px;">Email Address</label>
+        <input type="email" id="homeLoginEmail" placeholder="your@email.com" autocomplete="email"
+          style="width:100%;background:#0d1e38;border:1px solid #1e3a5f;border-radius:8px;padding:10px 14px;color:#f0f4f8;font-family:'Barlow',sans-serif;font-size:14px;outline:none;"
+          onfocus="this.style.borderColor='#00b4d8'" onblur="this.style.borderColor='#1e3a5f'">
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#8fa3bc;margin-bottom:6px;">Password</label>
+        <input type="password" id="homeLoginPass" placeholder="••••••••" autocomplete="current-password"
+          style="width:100%;background:#0d1e38;border:1px solid #1e3a5f;border-radius:8px;padding:10px 14px;color:#f0f4f8;font-family:'Barlow',sans-serif;font-size:14px;outline:none;"
+          onfocus="this.style.borderColor='#00b4d8'" onblur="this.style.borderColor='#1e3a5f'"
+          onkeydown="if(event.key==='Enter')doHomeLogin()">
+      </div>
+      <button onclick="doHomeLogin()"
+        style="width:100%;background:#00b4d8;color:#0a1628;border:none;border-radius:8px;padding:12px;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:background 0.2s;"
+        onmouseover="this.style.background='#0077a8'" onmouseout="this.style.background='#00b4d8'">Sign In</button>
+      <div id="homeLoginMsg" style="font-size:12px;text-align:center;margin-top:10px;min-height:18px;color:#ef4444;"></div>
+      <div style="text-align:center;margin-top:14px;">
+        <span style="font-size:12px;color:#8fa3bc;">No account? </span>
+        <button onclick="showHomeRegister()" style="font-size:12px;color:#00b4d8;background:none;border:none;cursor:pointer;padding:0;">Register</button>
+      </div>
+    </div>
+    <div id="registerFormView" style="display:none;">
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#8fa3bc;margin-bottom:6px;">Full Name</label>
+        <input type="text" id="homeRegName" placeholder="Your Name"
+          style="width:100%;background:#0d1e38;border:1px solid #1e3a5f;border-radius:8px;padding:10px 14px;color:#f0f4f8;font-family:'Barlow',sans-serif;font-size:14px;outline:none;"
+          onfocus="this.style.borderColor='#00b4d8'" onblur="this.style.borderColor='#1e3a5f'">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#8fa3bc;margin-bottom:6px;">Email Address</label>
+        <input type="email" id="homeRegEmail" placeholder="your@email.com"
+          style="width:100%;background:#0d1e38;border:1px solid #1e3a5f;border-radius:8px;padding:10px 14px;color:#f0f4f8;font-family:'Barlow',sans-serif;font-size:14px;outline:none;"
+          onfocus="this.style.borderColor='#00b4d8'" onblur="this.style.borderColor='#1e3a5f'">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#8fa3bc;margin-bottom:6px;">Password</label>
+        <input type="password" id="homeRegPass" placeholder="Min. 6 characters"
+          style="width:100%;background:#0d1e38;border:1px solid #1e3a5f;border-radius:8px;padding:10px 14px;color:#f0f4f8;font-family:'Barlow',sans-serif;font-size:14px;outline:none;"
+          onfocus="this.style.borderColor='#00b4d8'" onblur="this.style.borderColor='#1e3a5f'">
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#8fa3bc;margin-bottom:6px;">Your Station</label>
+        <select id="homeRegStation"
+          style="width:100%;background:#0d1e38;border:1px solid #1e3a5f;border-radius:8px;padding:10px 14px;color:#f0f4f8;font-family:'Barlow',sans-serif;font-size:14px;outline:none;">
+          <option value="">Select station...</option>
+          <option value="MNZ">MNZ — Mtunzini</option>
+          <option value="MPT">MPT — Maputo</option>
+          <option value="DES">DES — Dar es Salaam</option>
+          <option value="MBS">MBS — Mombasa</option>
+          <option value="MGD">MGD — Mogadishu</option>
+          <option value="DBT">DBT — Djibouti</option>
+          <option value="PSD">PSD — Port Sudan</option>
+          <option value="TLR">TLR — Toliary</option>
+          <option value="MRN">MRN — Moroni</option>
+        </select>
+      </div>
+      <button onclick="doHomeRegister()"
+        style="width:100%;background:#00b4d8;color:#0a1628;border:none;border-radius:8px;padding:12px;font-family:'Barlow',sans-serif;font-size:14px;font-weight:700;cursor:pointer;"
+        onmouseover="this.style.background='#0077a8'" onmouseout="this.style.background='#00b4d8'">Create Account</button>
+      <div id="homeRegMsg" style="font-size:12px;text-align:center;margin-top:10px;min-height:18px;color:#ef4444;"></div>
+      <div style="text-align:center;margin-top:14px;">
+        <button onclick="showHomeLogin()" style="font-size:12px;color:#00b4d8;background:none;border:none;cursor:pointer;padding:0;">← Back to Sign In</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  const SUPABASE_URL = 'https://wpblebjftxcdfrwwguti.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmxlYmpmdHhjZGZyd3dndXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ0NDE1NzMsImV4cCI6MjA2MDAxNzU3M30.OtAkTMZ9pZM52gVPpgkROatAjGmSGeyrmVF85i9MFCA';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let currentUser = null;
+
+  function gotoModule(event, url) {
+    if (!currentUser) {
+      event.preventDefault();
+      openLoginModal();
+      return false;
+    }
+    return true;
+  }
+
+  // Clock
   function updateClock() {
     const now = new Date();
     document.getElementById('live-date').textContent =
@@ -646,6 +741,118 @@
   }
   updateClock();
   setInterval(updateClock, 1000);
+
+  // Auth init
+  async function initAuth() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      currentUser = session.user;
+      showLoggedIn(session.user);
+    } else {
+      showLoggedOut();
+    }
+    sb.auth.onAuthStateChange((event, session) => {
+      if (session) { currentUser = session.user; showLoggedIn(session.user); }
+      else { currentUser = null; showLoggedOut(); }
+    });
+  }
+
+  function showLoggedIn(user) {
+    document.getElementById('loginModal').style.display = 'none';
+    const bar = document.getElementById('authBar');
+    bar.innerHTML = `
+      <span style="font-size:13px;color:#8fa3bc;">Signed in as</span>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:15px;color:#00b4d8;letter-spacing:0.5px;">${user.email}</span>
+      <button onclick="doSignOut()" style="background:transparent;border:1px solid #1e3a5f;border-radius:8px;padding:5px 14px;color:#8fa3bc;font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;"
+        onmouseover="this.style.borderColor='#ef4444';this.style.color='#ef4444'" onmouseout="this.style.borderColor='#1e3a5f';this.style.color='#8fa3bc'">Sign Out</button>
+    `;
+    // Unlock module cards
+    document.querySelectorAll('.module-card').forEach(c => {
+      c.style.opacity = '1';
+      c.style.pointerEvents = 'auto';
+    });
+    document.getElementById('footer-status').innerHTML = '<span class="pulse"></span>Signed in · All 9 Stations Active';
+  }
+
+  function showLoggedOut() {
+    const bar = document.getElementById('authBar');
+    bar.innerHTML = `
+      <span style="font-size:13px;color:#8fa3bc;">Not signed in</span>
+      <button onclick="openLoginModal()" style="background:#00b4d8;border:none;border-radius:8px;padding:7px 18px;color:#0a1628;font-family:'Barlow',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:background 0.2s;"
+        onmouseover="this.style.background='#0077a8'" onmouseout="this.style.background='#00b4d8'">Sign In</button>
+    `;
+    // Dim module cards that require auth
+    document.querySelectorAll('.module-card').forEach(c => {
+      c.style.opacity = '0.55';
+      c.style.pointerEvents = 'none';
+    });
+    // Show sign-in prompt on cards
+    document.getElementById('footer-status').innerHTML = '🔒 Please sign in to access modules';
+  }
+
+  function openLoginModal() {
+    document.getElementById('loginModal').style.display = 'flex';
+    setTimeout(() => document.getElementById('homeLoginEmail').focus(), 100);
+  }
+
+  function closeLoginModal() {
+    document.getElementById('loginModal').style.display = 'none';
+  }
+
+  function showHomeRegister() {
+    document.getElementById('loginFormView').style.display = 'none';
+    document.getElementById('registerFormView').style.display = 'block';
+  }
+
+  function showHomeLogin() {
+    document.getElementById('registerFormView').style.display = 'none';
+    document.getElementById('loginFormView').style.display = 'block';
+  }
+
+  async function doHomeLogin() {
+    const email = document.getElementById('homeLoginEmail').value.trim();
+    const pass = document.getElementById('homeLoginPass').value;
+    const msg = document.getElementById('homeLoginMsg');
+    msg.style.color = '#8fa3bc';
+    msg.textContent = 'Signing in...';
+    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) { msg.style.color = '#ef4444'; msg.textContent = error.message; }
+    else { msg.style.color = '#10b981'; msg.textContent = 'Signed in!'; setTimeout(closeLoginModal, 600); }
+  }
+
+  async function doHomeRegister() {
+    const name = document.getElementById('homeRegName').value.trim();
+    const email = document.getElementById('homeRegEmail').value.trim();
+    const pass = document.getElementById('homeRegPass').value;
+    const station = document.getElementById('homeRegStation').value;
+    const msg = document.getElementById('homeRegMsg');
+    if (!name || !email || !pass || !station) { msg.textContent = 'Please fill all fields.'; return; }
+    msg.style.color = '#8fa3bc'; msg.textContent = 'Creating account...';
+    const { data, error } = await sb.auth.signUp({
+      email, password: pass,
+      options: {
+        data: { full_name: name, station_code: station },
+        emailRedirectTo: 'https://verne-steyn.github.io/Eassy-cls/home.html'
+      }
+    });
+    if (error) { msg.style.color = '#ef4444'; msg.textContent = error.message; return; }
+    if (data.user) {
+      await sb.from('profiles').upsert({ id: data.user.id, full_name: name, email, station_code: station, role: 'user' });
+      msg.style.color = '#10b981';
+      msg.textContent = 'Account created! Check your email to confirm.';
+    }
+  }
+
+  async function doSignOut() {
+    await sb.auth.signOut();
+  }
+
+  // Close modal on backdrop click
+  document.getElementById('loginModal').addEventListener('click', function(e) {
+    if (e.target === this) closeLoginModal();
+  });
+
+  initAuth();
 </script>
 
 </body>

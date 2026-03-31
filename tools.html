@@ -403,64 +403,13 @@
 </head>
 <body>
 
-<!-- Auth overlay -->
-<div class="auth-overlay" id="authOverlay">
-  <div class="auth-card">
-    <div class="auth-logo">
-      <div class="badge">🔧</div>
-      <h2>Station Tools</h2>
-      <p>EASSy CLS Asset Management</p>
-    </div>
-    <div id="authLoginForm">
-      <div class="form-group">
-        <label>Email Address</label>
-        <input type="email" id="loginEmail" placeholder="your@email.com" autocomplete="email">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password">
-      </div>
-      <button class="btn btn-amber" style="width:100%;justify-content:center;" onclick="doLogin()">Sign In</button>
-      <div class="auth-msg" id="loginMsg"></div>
-      <div style="text-align:center;margin-top:14px;">
-        <span style="font-size:12px;color:var(--muted);">No account? </span>
-        <button class="btn-ghost" style="font-size:12px;padding:0;color:var(--amber);" onclick="showRegister()">Register</button>
-      </div>
-    </div>
-    <div id="authRegisterForm" class="hidden">
-      <div class="form-group">
-        <label>Full Name</label>
-        <input type="text" id="regName" placeholder="Your Name">
-      </div>
-      <div class="form-group">
-        <label>Email Address</label>
-        <input type="email" id="regEmail" placeholder="your@email.com">
-      </div>
-      <div class="form-group">
-        <label>Password</label>
-        <input type="password" id="regPass" placeholder="Min. 6 characters">
-      </div>
-      <div class="form-group">
-        <label>Your Station</label>
-        <select id="regStation">
-          <option value="">Select station...</option>
-          <option value="MNZ">MNZ — Mtunzini</option>
-          <option value="MPT">MPT — Maputo</option>
-          <option value="DES">DES — Dar es Salaam</option>
-          <option value="MBS">MBS — Mombasa</option>
-          <option value="MGD">MGD — Mogadishu</option>
-          <option value="DBT">DBT — Djibouti</option>
-          <option value="PSD">PSD — Port Sudan</option>
-          <option value="TLR">TLR — Toliary</option>
-          <option value="MRN">MRN — Moroni</option>
-        </select>
-      </div>
-      <button class="btn btn-amber" style="width:100%;justify-content:center;" onclick="doRegister()">Create Account</button>
-      <div class="auth-msg" id="regMsg"></div>
-      <div style="text-align:center;margin-top:14px;">
-        <button class="btn-ghost" style="font-size:12px;padding:0;color:var(--amber);" onclick="showLogin()">← Back to Sign In</button>
-      </div>
-    </div>
+<!-- Auth redirect overlay (no login here — sign in via Portal) -->
+<div class="auth-overlay" id="authOverlay" style="display:none;">
+  <div class="auth-card" style="text-align:center;">
+    <div style="font-size:48px;margin-bottom:16px;">🔧</div>
+    <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--amber);margin-bottom:8px;">Station Tools</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">You need to be signed in to access this page.</p>
+    <a href="home.html" class="btn btn-amber" style="width:100%;justify-content:center;">← Go to Portal to Sign In</a>
   </div>
 </div>
 
@@ -632,12 +581,14 @@ async function handleSession(session) {
 }
 
 function showAuthOverlay() {
-  document.getElementById('authOverlay').style.display = 'flex';
-  document.getElementById('mainContent').style.display = 'none';
-  document.getElementById('loginArea').style.display = 'none';
+  // Not logged in — redirect to portal for login
+  window.location.href = 'home.html';
 }
 
-function getFlag(code) {
+async function doLogout() {
+  await sb.auth.signOut();
+  window.location.href = 'home.html';
+}(code) {
   const flags = {MNZ:'🇿🇦',MPT:'🇲🇿',DES:'🇹🇿',MBS:'🇰🇪',MGD:'🇸🇴',DBT:'🇩🇯',PSD:'🇸🇩',TLR:'🇲🇬',MRN:'🇰🇲'};
   return flags[code] || '🌍';
 }
@@ -655,51 +606,9 @@ function canEditStation(code) {
   return userProfile.station_code === code && isAdmin();
 }
 
-// ─── AUTH ───
-function showRegister() {
-  document.getElementById('authLoginForm').classList.add('hidden');
-  document.getElementById('authRegisterForm').classList.remove('hidden');
-}
-function showLogin() {
-  document.getElementById('authRegisterForm').classList.add('hidden');
-  document.getElementById('authLoginForm').classList.remove('hidden');
-}
-
-async function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pass = document.getElementById('loginPass').value;
-  document.getElementById('loginMsg').textContent = 'Signing in...';
-  document.getElementById('loginMsg').className = 'auth-msg';
-  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
-  if (error) {
-    document.getElementById('loginMsg').textContent = error.message;
-  }
-}
-
-async function doRegister() {
-  const name = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const pass = document.getElementById('regPass').value;
-  const station = document.getElementById('regStation').value;
-  const msg = document.getElementById('regMsg');
-  if (!name || !email || !pass || !station) { msg.textContent = 'Please fill all fields.'; return; }
-  msg.textContent = 'Creating account...'; msg.className = 'auth-msg';
-  const { data, error } = await sb.auth.signUp({
-    email, password: pass,
-    options: { data: { full_name: name, station_code: station },
-      emailRedirectTo: 'https://verne-steyn.github.io/Eassy-cls/tools.html' }
-  });
-  if (error) { msg.textContent = error.message; return; }
-  if (data.user) {
-    await sb.from('profiles').upsert({ id: data.user.id, full_name: name, email, station_code: station, role: 'user' });
-    msg.className = 'auth-msg success';
-    msg.textContent = 'Account created! Check your email to confirm.';
-  }
-}
-
-async function doLogout() {
-  await sb.auth.signOut();
-  showAuthOverlay();
+function getFlag(code) {
+  const flags = {MNZ:'🇿🇦',MPT:'🇲🇿',DES:'🇹🇿',MBS:'🇰🇪',MGD:'🇸🇴',DBT:'🇩🇯',PSD:'🇸🇩',TLR:'🇲🇬',MRN:'🇰🇲'};
+  return flags[code] || '🌍';
 }
 
 // ─── STATION SELECTION ───
