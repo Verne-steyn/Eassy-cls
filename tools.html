@@ -398,6 +398,43 @@
   .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--amber); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* Sticky submit bar shown during check mode */
+  .sticky-submit-bar {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 150;
+    background: var(--surface);
+    border-top: 2px solid var(--green);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.10);
+    padding: 14px 32px;
+    align-items: center;
+    gap: 16px;
+  }
+  .sticky-submit-bar.active { display: flex; }
+  .sticky-bar-text { flex: 1; }
+  .sticky-bar-text strong { font-size: 14px; font-weight: 600; color: var(--text); display: block; }
+  .sticky-bar-text span { font-size: 12px; color: var(--muted); }
+
+  /* Editable tool name */
+  .tool-name-input {
+    background: transparent;
+    border: 1px dashed transparent;
+    border-radius: 5px;
+    padding: 2px 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    width: 100%;
+    transition: all 0.15s;
+  }
+  .tool-name-input:hover { border-color: var(--border); background: var(--surface2); }
+  .tool-name-input:focus { border-color: var(--amber); background: var(--surface); outline: none; }
+
+  /* Extra bottom padding when sticky bar is active */
+  body.check-active { padding-bottom: 72px; }
+
   .hidden { display: none !important; }
 </style>
 </head>
@@ -523,6 +560,16 @@
 
 </div>
 
+<!-- Sticky submit bar (visible during check mode) -->
+<div class="sticky-submit-bar" id="stickySubmitBar">
+  <div class="sticky-bar-text">
+    <strong>6-Monthly Check in Progress</strong>
+    <span id="stickyProgress">Fill in all fields then submit.</span>
+  </div>
+  <button class="btn btn-outline" onclick="cancelCheck()" style="border-color:var(--red);color:var(--red);">✕ Cancel</button>
+  <button class="btn btn-green" onclick="openSubmitModal()" style="padding:10px 28px;font-size:14px;">✅ Save &amp; Submit Check</button>
+</div>
+
 <script>
 // ─── CONFIG ───
 const SUPABASE_URL = 'https://wpblebjftxcdfrwwguti.supabase.co';
@@ -636,6 +683,15 @@ async function renderStationContent() {
 
   inventory = inv || [];
 
+  // Auto-seed master list if inventory is empty
+  if (inventory.length === 0 && canEditStation(currentStation)) {
+    el.innerHTML = `<div class="loading"><div class="spinner"></div><br>Setting up ${currentStation} inventory...</div>`;
+    await autoSeedMasterTools();
+    const { data: inv2 } = await sb.from('tools_inventory')
+      .select('*').eq('station_code', currentStation).order('tool_no');
+    inventory = inv2 || [];
+  }
+
   // Fetch last check
   const { data: lastChecks } = await sb.from('tools_checks')
     .select('*').eq('station_code', currentStation)
@@ -730,8 +786,7 @@ function renderStationDashboard(lastChecks) {
         <input type="text" placeholder="Search tools..." id="toolSearch" oninput="filterTools()">
       </div>
       ${canEdit ? `
-        <button class="btn btn-outline btn-sm" onclick="seedMasterTools()" title="Load EASSy standard 109-tool list into this station's inventory">⬇ Load Master List</button>
-        <button class="btn btn-amber btn-sm" onclick="openAddTool()">➕ Add Tool</button>
+<button class="btn btn-amber btn-sm" onclick="openAddTool()">➕ Add Tool</button>
       ` : ''}
       ${canEdit && !checkMode ? `<button class="btn btn-green btn-sm" onclick="startCheck()">▶ Start 6-Monthly Check</button>` : ''}
       ${checkMode ? `
@@ -805,7 +860,7 @@ function renderStationDashboard(lastChecks) {
 function renderToolRows(tools, canEdit) {
   if (tools.length === 0) {
     return `<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">
-      No tools in inventory. ${canEdit ? 'Use "Load Master List" or "Add Tool" to get started.' : ''}
+      No tools in inventory yet.
     </td></tr>`;
   }
 
@@ -821,7 +876,12 @@ function renderToolRows(tools, canEdit) {
     return `<tr data-tool-id="${t.id}" data-search="${t.description.toLowerCase()} ${t.model?.toLowerCase()||''}">
       <td class="tool-no">${t.tool_no}</td>
       <td class="tool-desc">
-        ${t.description}
+        ${canEdit
+          ? `<input type="text" class="tool-name-input" value="${t.description.replace(/"/g,'&quot;')}"
+               onblur="updateToolName('${t.id}', this.value)"
+               onkeydown="if(event.key==='Enter')this.blur()"
+               title="Click to edit tool name">`
+          : t.description}
         ${isPowered ? '<div class="powered-indicator">⚡ Power check req.</div>' : ''}
         ${t.is_custom ? '<div class="powered-indicator" style="color:var(--teal);">✦ Custom</div>' : ''}
       </td>
@@ -893,11 +953,15 @@ function startCheck() {
     checkData[t.id] = { qty_confirmed: t.qty_in_hand, condition: '', power_check: '', notes: '' };
   });
   renderStationContent();
+  document.getElementById('stickySubmitBar').classList.add('active');
+  document.body.classList.add('check-active');
 }
 
 function cancelCheck() {
   checkMode = false;
   checkData = {};
+  document.getElementById('stickySubmitBar').classList.remove('active');
+  document.body.classList.remove('check-active');
   renderStationContent();
 }
 
@@ -969,6 +1033,8 @@ async function finalSubmit() {
   closeSubmitModal();
   checkMode = false;
   checkData = {};
+  document.getElementById('stickySubmitBar').classList.remove('active');
+  document.body.classList.remove('check-active');
   await renderStationContent();
 }
 
@@ -1007,6 +1073,15 @@ async function saveNewTool() {
   await renderStationContent();
 }
 
+async function updateToolName(toolId, newName) {
+  const trimmed = newName.trim();
+  if (!trimmed) return;
+  await sb.from('tools_inventory').update({ description: trimmed }).eq('id', toolId);
+  // Update local inventory so search stays in sync
+  const t = inventory.find(x => x.id === toolId);
+  if (t) t.description = trimmed;
+}
+
 async function updateQty(toolId, newQty) {
   await sb.from('tools_inventory').update({ qty_in_hand: parseInt(newQty) || 0 }).eq('id', toolId);
 }
@@ -1015,6 +1090,20 @@ async function deleteTool(toolId) {
   if (!confirm('Remove this tool from the station inventory?')) return;
   await sb.from('tools_inventory').delete().eq('id', toolId);
   await renderStationContent();
+}
+
+async function autoSeedMasterTools() {
+  const toInsert = MASTER_TOOLS.map(t => ({
+    station_code: currentStation,
+    tool_no: t.no,
+    description: t.description,
+    model: t.model,
+    qty_issued: t.qty_issued,
+    qty_in_hand: 0,
+    is_powered: POWERED_NOS.has(t.no),
+    is_custom: false
+  }));
+  await sb.from('tools_inventory').insert(toInsert);
 }
 
 async function seedMasterTools() {

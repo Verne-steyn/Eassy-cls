@@ -339,6 +339,24 @@
   .spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  .sticky-submit-bar {
+    display: none;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 150;
+    background: var(--surface);
+    border-top: 2px solid var(--green);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.10);
+    padding: 14px 32px;
+    align-items: center;
+    gap: 16px;
+  }
+  .sticky-submit-bar.active { display: flex; }
+  .sticky-bar-text { flex: 1; }
+  .sticky-bar-text strong { font-size: 14px; font-weight: 600; color: var(--text); display: block; }
+  .sticky-bar-text span { font-size: 12px; color: var(--muted); }
+  body.check-active { padding-bottom: 72px; }
+
   .hidden { display: none !important; }
 </style>
 </style>
@@ -494,6 +512,16 @@
     <div class="alert alert-info">ℹ️ Select a station to view its test equipment inventory.</div>
   </div>
 
+</div>
+
+<!-- Sticky submit bar -->
+<div class="sticky-submit-bar" id="stickySubmitBar">
+  <div class="sticky-bar-text">
+    <strong>6-Monthly Check in Progress</strong>
+    <span>Complete all items below then submit your check record.</span>
+  </div>
+  <button class="btn btn-outline" onclick="cancelCheck()" style="border-color:var(--red);color:var(--red);">✕ Cancel</button>
+  <button class="btn btn-green" onclick="openSubmitModal()" style="padding:10px 28px;font-size:14px;">✅ Save &amp; Submit Check</button>
 </div>
 
 <script>
@@ -850,8 +878,19 @@ function styleSelect(el) {
 }
 
 // Check mode
-function startCheck() { checkMode = true; checkData = {}; inventory.forEach(e => { checkData[e.id] = {}; }); renderStation(); }
-function cancelCheck() { checkMode = false; checkData = {}; renderStation(); }
+function startCheck() {
+  checkMode = true; checkData = {};
+  inventory.forEach(e => { checkData[e.id] = {}; });
+  renderStation();
+  document.getElementById('stickySubmitBar').classList.add('active');
+  document.body.classList.add('check-active');
+}
+function cancelCheck() {
+  checkMode = false; checkData = {};
+  document.getElementById('stickySubmitBar').classList.remove('active');
+  document.body.classList.remove('check-active');
+  renderStation();
+}
 function setCheck(id, field, value) { if (!checkData[id]) checkData[id] = {}; checkData[id][field] = value; }
 
 function openSubmitModal() {
@@ -895,6 +934,8 @@ async function finalSubmit() {
   if (error) { alert('Error: ' + error.message); return; }
   closeSubmitModal();
   checkMode = false; checkData = {};
+  document.getElementById('stickySubmitBar').classList.remove('active');
+  document.body.classList.remove('check-active');
   await renderStation();
 }
 
