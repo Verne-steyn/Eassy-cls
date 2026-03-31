@@ -588,9 +588,6 @@ function showAuthOverlay() {
 async function doLogout() {
   await sb.auth.signOut();
   window.location.href = 'home.html';
-}(code) {
-  const flags = {MNZ:'🇿🇦',MPT:'🇲🇿',DES:'🇹🇿',MBS:'🇰🇪',MGD:'🇸🇴',DBT:'🇩🇯',PSD:'🇸🇩',TLR:'🇲🇬',MRN:'🇰🇲'};
-  return flags[code] || '🌍';
 }
 
 function isAdmin() {
