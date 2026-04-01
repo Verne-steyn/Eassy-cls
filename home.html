@@ -726,19 +726,6 @@
 
   </div>
 
-  <div class="section-label">Cable Landing Stations</div>
-
-  <div class="stations-grid">
-    <div class="station-card"><div class="station-flag">🇿🇦</div><div class="station-code">MNZ</div><div class="station-name">Mtunzini</div></div>
-    <div class="station-card"><div class="station-flag">🇲🇿</div><div class="station-code">MPT</div><div class="station-name">Maputo</div></div>
-    <div class="station-card"><div class="station-flag">🇹🇿</div><div class="station-code">DES</div><div class="station-name">Dar es Salaam</div></div>
-    <div class="station-card"><div class="station-flag">🇰🇪</div><div class="station-code">MBS</div><div class="station-name">Mombasa</div></div>
-    <div class="station-card"><div class="station-flag">🇸🇴</div><div class="station-code">MGD</div><div class="station-name">Mogadishu</div></div>
-    <div class="station-card"><div class="station-flag">🇩🇯</div><div class="station-code">DBT</div><div class="station-name">Djibouti</div></div>
-    <div class="station-card"><div class="station-flag">🇸🇩</div><div class="station-code">PSD</div><div class="station-name">Port Sudan</div></div>
-    <div class="station-card"><div class="station-flag">🇲🇬</div><div class="station-code">TLR</div><div class="station-name">Toliary</div></div>
-    <div class="station-card"><div class="station-flag">🇰🇲</div><div class="station-code">MRN</div><div class="station-name">Moroni</div></div>
-  </div>
 
 </main>
 
@@ -903,7 +890,7 @@
     msg.className = 'modal-msg info'; msg.textContent = 'Creating account...';
     const { data, error } = await sb.auth.signUp({
       email, password: pass,
-      options: { data: { full_name: name, station_code: station }, emailRedirectTo: 'https://verne-steyn.github.io/Eassy-cls/home.html' }
+      options: { data: { full_name: name, station_code: station }, emailRedirectTo: 'https://verne-steyn.github.io/Eassy-cls/confirm.html' }
     });
     if (error) { msg.className = 'modal-msg'; msg.textContent = error.message; return; }
     if (data.user) {
