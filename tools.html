@@ -649,7 +649,7 @@ function isAdmin() {
 function canEditStation(code) {
   if (!currentUser || !userProfile) return false;
   if (currentUser.email === ADMIN_WHITELIST.SUPER) return true;
-  return userProfile.station_code === code && isAdmin();
+  return userProfile.station_code === code;
 }
 
 function getFlag(code) {

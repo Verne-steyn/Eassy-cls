@@ -599,7 +599,7 @@ function isAdmin() {
 function canEdit() {
   if (!currentUser) return false;
   if (currentUser.email === ADMIN_WHITELIST.SUPER) return true;
-  return userProfile?.station_code === currentStation && isAdmin();
+  return userProfile?.station_code === currentStation;
 }
 
 async function doLogout() { await sb.auth.signOut(); window.location.href = 'home.html'; }
