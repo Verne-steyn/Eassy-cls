@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EASSy CLS — Spare Parts</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--surface2:#f8f9fa;--border:#d0dae4;--text:#1a2a3a;--text-mid:#3a5068;--muted:#6b7f94;--indigo:#4f46e5;--indigo-bg:#eef2ff;--indigo-border:#c7d2fe;--green:#059669;--green-bg:#f0fdf4;--amber:#d97706;--amber-bg:#fffbeb;--amber-border:#fde68a;--teal:#0077a8;--teal-bg:#f0f9ff;--red:#dc2626;--red-bg:#fef2f2;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.page-header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,0.06);padding:0 32px;display:flex;align-items:center;gap:16px;height:58px;}
+.back-btn{display:flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;font-size:13px;font-weight:500;transition:color 0.2s;}
+.back-btn:hover{color:var(--indigo);}
+.header-sep{width:1px;height:24px;background:var(--border);}
+.header-icon{width:32px;height:32px;background:var(--indigo-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.header-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;letter-spacing:1px;text-transform:uppercase;color:var(--indigo);}
+.header-spacer{flex:1;}
+.user-pill{background:var(--indigo-bg);border:1px solid var(--indigo-border);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--indigo);font-weight:600;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;}
+.btn-indigo{background:var(--indigo);color:white;}.btn-indigo:hover{background:#3730a3;}
+.btn-outline{background:transparent;color:var(--muted);border:1px solid var(--border);}.btn-outline:hover{border-color:var(--indigo);color:var(--indigo);}
+.btn-green{background:var(--green);color:white;}.btn-green:hover{background:#047857;}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.auth-overlay{position:fixed;inset:0;z-index:200;background:rgba(240,244,248,0.97);display:flex;align-items:center;justify-content:center;}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;width:380px;max-width:92vw;box-shadow:0 8px 32px rgba(0,0,0,0.10);}
+.auth-logo{text-align:center;margin-bottom:28px;}
+.auth-logo h2{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--indigo);}
+.auth-logo p{font-size:12px;color:var(--muted);margin-top:4px;}
+.fg{margin-bottom:16px;}
+.fg label{display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--indigo);}
+.fg textarea{resize:vertical;min-height:60px;}
+.auth-msg{font-size:12px;text-align:center;margin-top:12px;min-height:18px;color:var(--red);}
+.content{max-width:1400px;margin:0 auto;padding:28px 32px;}
+.station-bar{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 20px;margin-bottom:24px;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+.station-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+.station-chips{display:flex;flex-wrap:wrap;gap:8px;flex:1;}
+.station-chip{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text-mid);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.station-chip:hover{border-color:var(--indigo);color:var(--indigo);background:var(--indigo-bg);}
+.station-chip.active{background:var(--indigo);border-color:var(--indigo);color:white;}
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.toolbar-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text);flex:1;}
+.search-box{position:relative;}
+.search-box input{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px 8px 30px;color:var(--text);font-size:13px;outline:none;width:200px;transition:all 0.2s;}
+.search-box input:focus{border-color:var(--indigo);width:240px;}
+.search-box::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;}
+.stats-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;}
+.sc-indigo::before{background:var(--indigo);}
+.sc-red::before{background:var(--red);}
+.sc-amber::before{background:var(--amber);}
+.sc-green::before{background:var(--green);}
+.stat-label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.stat-value{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;line-height:1;}
+.sc-indigo .stat-value{color:var(--indigo);}
+.sc-red .stat-value{color:var(--red);}
+.sc-amber .stat-value{color:var(--amber);}
+.sc-green .stat-value{color:var(--green);}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.alert-strip{background:var(--red-bg);border:1px solid #fca5a5;border-radius:12px;padding:12px 18px;margin-bottom:20px;display:none;}
+.alert-strip.show{display:block;}
+.alert-strip-title{font-weight:700;font-size:13px;color:var(--red);margin-bottom:6px;}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+.panel-head{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);background:var(--surface2);}
+.panel-head h3{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--indigo);flex:1;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{padding:9px 14px;text-align:left;font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);background:var(--surface2);border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.15s;}
+tbody tr:hover{background:var(--surface2);}
+tbody tr:last-child{border-bottom:none;}
+td{padding:9px 14px;vertical-align:middle;}
+.stock-ok{color:var(--green);font-weight:700;}
+.stock-low{color:var(--amber);font-weight:700;}
+.stock-critical{color:var(--red);font-weight:700;}
+.pill{display:inline-block;border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700;border:1px solid;}
+.pill-green{background:var(--green-bg);color:var(--green);border-color:#bbf7d0;}
+.pill-amber{background:var(--amber-bg);color:var(--amber);border-color:var(--amber-border);}
+.pill-red{background:var(--red-bg);color:var(--red);border-color:#fca5a5;}
+.qty-input{width:70px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;outline:none;text-align:center;}
+.qty-input:focus{border-color:var(--indigo);}
+.modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(28,43,58,0.5);display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px;width:540px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 12px 48px rgba(0,0,0,0.15);}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--indigo);margin-bottom:20px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;}
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted);font-size:13px;}
+</style>
+</head>
+<body>
+
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-logo"><div style="font-size:32px;margin-bottom:12px;">📦</div><h2>Spare Parts</h2><p>EASSy CLS Operations Portal</p></div>
+    <div class="fg"><label>Email</label><input type="email" id="loginEmail" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="fg"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn btn-indigo" style="width:100%;justify-content:center;" onclick="doLogin()">Sign In</button>
+    <div class="auth-msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<header class="page-header">
+  <a href="home.html" class="back-btn">← Portal</a>
+  <div class="header-sep"></div>
+  <div class="header-icon">📦</div>
+  <div class="header-title">Spare Parts Inventory</div>
+  <div class="header-spacer"></div>
+  <div id="loginArea" style="display:none;align-items:center;gap:8px;">
+    <span class="user-pill" id="userPill">—</span>
+    <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
+  </div>
+</header>
+
+<div class="content" id="mainContent" style="display:none;">
+  <div class="station-bar">
+    <span class="station-label">Station:</span>
+    <div class="station-chips">
+      <button class="station-chip" onclick="selectStation('MNZ')">🇿🇦 MNZ</button>
+      <button class="station-chip" onclick="selectStation('MPT')">🇲🇿 MPT</button>
+      <button class="station-chip" onclick="selectStation('DES')">🇹🇿 DES</button>
+      <button class="station-chip" onclick="selectStation('MBS')">🇰🇪 MBS</button>
+      <button class="station-chip" onclick="selectStation('MGD')">🇸🇴 MGD</button>
+      <button class="station-chip" onclick="selectStation('DBT')">🇩🇯 DBT</button>
+      <button class="station-chip" onclick="selectStation('PSD')">🇸🇩 PSD</button>
+      <button class="station-chip" onclick="selectStation('TLR')">🇲🇬 TLR</button>
+      <button class="station-chip" onclick="selectStation('MRN')">🇰🇲 MRN</button>
+    </div>
+  </div>
+  <div id="stationContent"><div style="text-align:center;padding:40px;color:var(--muted);">Select a station above.</div></div>
+</div>
+
+<!-- Add / Edit Item Modal -->
+<div class="modal-overlay" id="itemModal">
+  <div class="modal" id="itemModalContent"></div>
+</div>
+
+<script>
+const SUPABASE_URL='https://wpblebjftxcdfrwwguti.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmxlYmpmdHhjZGZyd3dndXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Njg3NTAsImV4cCI6MjA4OTU0NDc1MH0.oaBljcLPFa3JPLp_e-2FgCcylwAOPAdHpkzGctOwfo0';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const AW={'MRN':'assad.comorescables@outlook.com','TLR':'johary.ramboa@telma.mg','DBT':'farah.abdi@djibtel.dj','PSD':'abdelhameeda@sudatel.sd','MGD':'girde@dalkomsomalia.com','MBS':'totieno@telkom.co.ke','MNZ':'waynee@openserve.co.za','MPT':'nhiuane@tmcel.mz','DES':'omar.said@yas.co.tz','SUPER':'verne.steyn@wiocc.net'};
+const FLAGS={MNZ:'🇿🇦',MPT:'🇲🇿',DES:'🇹🇿',MBS:'🇰🇪',MGD:'🇸🇴',DBT:'🇩🇯',PSD:'🇸🇩',TLR:'🇲🇬',MRN:'🇰🇲'};
+const NAMES={MNZ:'Mtunzini',MPT:'Maputo',DES:'Dar es Salaam',MBS:'Mombasa',MGD:'Mogadishu',DBT:'Djibouti',PSD:'Port Sudan',TLR:'Toliary',MRN:'Moroni'};
+let curUser=null,userProfile=null,curStation=null,items=[],searchQ='';
+
+async function doLogin(){const e=document.getElementById('loginEmail').value.trim(),p=document.getElementById('loginPassword').value,m=document.getElementById('loginMsg');m.textContent='Signing in…';const{error}=await sb.auth.signInWithPassword({email:e,password:p});if(error){m.textContent=error.message;}}
+async function doLogout(){await sb.auth.signOut();location.reload();}
+async function init(){const{data:{session}}=await sb.auth.getSession();if(session){curUser=session.user;await loadProfile();showApp();}sb.auth.onAuthStateChange(async(ev,s)=>{if(s&&!curUser){curUser=s.user;await loadProfile();showApp();}});}
+async function loadProfile(){const{data}=await sb.from('profiles').select('*').eq('id',curUser.id).single();userProfile=data;}
+function showApp(){document.getElementById('authOverlay').style.display='none';document.getElementById('mainContent').style.display='block';document.getElementById('loginArea').style.display='flex';document.getElementById('userPill').textContent=userProfile?.full_name||curUser.email;const sup=curUser.email===AW['SUPER'];if(userProfile?.station_code&&!sup)selectStation(userProfile.station_code);}
+function selectStation(c){curStation=c;document.querySelectorAll('.station-chip').forEach(x=>x.classList.toggle('active',x.textContent.includes(c)));loadInventory();}
+function escH(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+async function loadInventory(){
+  if(!curStation)return;
+  const el=document.getElementById('stationContent');
+  el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">⏳ Loading…</div>';
+  const{data}=await sb.from('spares_inventory').select('*').eq('station_code',curStation).order('category').order('description');
+  items=data||[];
+  renderInventory();
+}
+
+function renderInventory(){
+  const el=document.getElementById('stationContent');
+  const canWrite=curUser.email===AW[curStation]||curUser.email===AW['SUPER'];
+  const filtered=items.filter(i=>!searchQ||i.description.toLowerCase().includes(searchQ)||i.part_number?.toLowerCase().includes(searchQ)||(i.category||'').toLowerCase().includes(searchQ));
+  const critical=items.filter(i=>i.qty_on_hand<i.qty_minimum).length;
+  const low=items.filter(i=>i.qty_on_hand>=i.qty_minimum&&i.qty_on_hand<i.qty_minimum*1.5).length;
+  const ok=items.filter(i=>i.qty_on_hand>=i.qty_minimum*1.5).length;
+
+  el.innerHTML=`
+    <div class="stats-strip">
+      <div class="stat-card sc-indigo"><div class="stat-label">Total Items</div><div class="stat-value">${items.length}</div><div class="stat-sub">Tracked spare parts</div></div>
+      <div class="stat-card sc-red"><div class="stat-label">Below Minimum</div><div class="stat-value">${critical}</div><div class="stat-sub">Require replenishment</div></div>
+      <div class="stat-card sc-amber"><div class="stat-label">Low Stock</div><div class="stat-value">${low}</div><div class="stat-sub">Within 50% of minimum</div></div>
+      <div class="stat-card sc-green"><div class="stat-label">Adequate Stock</div><div class="stat-value">${ok}</div><div class="stat-sub">At or above minimum</div></div>
+    </div>
+    ${critical>0?`<div class="alert-strip show"><div class="alert-strip-title">⚠️ ${critical} item${critical>1?'s are':' is'} below minimum stock level — replenishment required</div>${items.filter(i=>i.qty_on_hand<i.qty_minimum).map(i=>`<div style="font-size:12px;color:#7f1d1d;padding:2px 0;">📦 ${escH(i.description)} — On hand: ${i.qty_on_hand} / Minimum: ${i.qty_minimum}</div>`).join('')}</div>`:''}
+    <div class="toolbar">
+      <div class="toolbar-title">${FLAGS[curStation]||''} ${curStation} — Spare Parts Inventory</div>
+      <div class="search-box"><input type="text" placeholder="Search items…" value="${searchQ}" oninput="searchQ=this.value.toLowerCase();renderInventory()"></div>
+      ${canWrite?`<button class="btn btn-indigo" onclick="openAddItem()">+ Add Item</button>`:''}
+      <button class="btn btn-outline btn-sm" onclick="exportInventory()">⬇ Export CSV</button>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>📦 Inventory — ${NAMES[curStation]||curStation}</h3><span style="font-size:11px;color:var(--muted);">${filtered.length} items</span></div>
+      <table>
+        <thead><tr><th>#</th><th>Description</th><th>Part Number</th><th>Category</th><th>On Hand</th><th>Minimum</th><th>Status</th><th>Location</th><th>Last Updated</th>${canWrite?'<th>Actions</th>':''}</tr></thead>
+        <tbody>
+          ${filtered.length===0?`<tr><td colspan="${canWrite?10:9}" style="text-align:center;color:var(--muted);padding:30px;">No items found${searchQ?' for "'+escH(searchQ)+'"':''}</td></tr>`:filtered.map((item,idx)=>{
+            const st=item.qty_on_hand<item.qty_minimum?'critical':item.qty_on_hand<item.qty_minimum*1.5?'low':'ok';
+            const sc={critical:'stock-critical',low:'stock-low',ok:'stock-ok'}[st];
+            const pill={critical:`<span class="pill pill-red">⚠ Below Min</span>`,low:`<span class="pill pill-amber">△ Low</span>`,ok:`<span class="pill pill-green">✓ OK</span>`}[st];
+            const lu=item.updated_at?new Date(item.updated_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short'}):'—';
+            return`<tr>
+              <td style="color:var(--muted);font-size:11px;">${idx+1}</td>
+              <td style="font-weight:600;color:var(--text)">${escH(item.description)}</td>
+              <td style="font-family:monospace;font-size:11px;color:var(--muted)">${escH(item.part_number||'—')}</td>
+              <td style="font-size:12px;color:var(--text-mid)">${escH(item.category||'—')}</td>
+              <td><span class="${sc}" style="font-family:'Barlow Condensed',sans-serif;font-size:16px;">${item.qty_on_hand}</span></td>
+              <td style="color:var(--muted)">${item.qty_minimum}</td>
+              <td>${pill}</td>
+              <td style="font-size:12px;color:var(--muted)">${escH(item.location||'—')}</td>
+              <td style="font-size:11px;color:var(--muted)">${lu}</td>
+              ${canWrite?`<td style="white-space:nowrap;"><button class="btn btn-outline btn-sm" style="font-size:11px;" onclick="editItem('${item.id}')">Edit</button> <button class="btn btn-outline btn-sm" style="font-size:11px;" onclick="quickUpdate('${item.id}')">Qty</button></td>`:''}
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openAddItem(){
+  document.getElementById('itemModalContent').innerHTML=`
+    <div class="modal-title">📦 Add Spare Part</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="fg" style="grid-column:1/-1"><label>Description</label><input type="text" id="iDesc" placeholder="e.g. SFP+ 10G Transceiver"></div>
+      <div class="fg"><label>Part Number</label><input type="text" id="iPartNo" placeholder="Manufacturer part no."></div>
+      <div class="fg"><label>Category</label><input type="text" id="iCat" placeholder="e.g. Optical, Power, Cable"></div>
+      <div class="fg"><label>Qty On Hand</label><input type="number" id="iQtyHand" min="0" value="0"></div>
+      <div class="fg"><label>Minimum Stock (JSMD)</label><input type="number" id="iQtyMin" min="0" value="1"></div>
+      <div class="fg" style="grid-column:1/-1"><label>Storage Location</label><input type="text" id="iLoc" placeholder="e.g. Equipment room shelf A2"></div>
+      <div class="fg" style="grid-column:1/-1"><label>Notes</label><textarea id="iNotes" rows="2" placeholder="Any additional notes…"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-indigo" id="iSaveBtn" onclick="saveItem(null)">Add Item</button>
+    </div>`;
+  document.getElementById('itemModal').classList.add('open');
+}
+
+function editItem(id){
+  const item=items.find(i=>i.id===id);if(!item)return;
+  document.getElementById('itemModalContent').innerHTML=`
+    <div class="modal-title">✏️ Edit Spare Part</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="fg" style="grid-column:1/-1"><label>Description</label><input type="text" id="iDesc" value="${escH(item.description)}"></div>
+      <div class="fg"><label>Part Number</label><input type="text" id="iPartNo" value="${escH(item.part_number||'')}"></div>
+      <div class="fg"><label>Category</label><input type="text" id="iCat" value="${escH(item.category||'')}"></div>
+      <div class="fg"><label>Qty On Hand</label><input type="number" id="iQtyHand" min="0" value="${item.qty_on_hand}"></div>
+      <div class="fg"><label>Minimum Stock (JSMD)</label><input type="number" id="iQtyMin" min="0" value="${item.qty_minimum}"></div>
+      <div class="fg" style="grid-column:1/-1"><label>Storage Location</label><input type="text" id="iLoc" value="${escH(item.location||'')}"></div>
+      <div class="fg" style="grid-column:1/-1"><label>Notes</label><textarea id="iNotes" rows="2">${escH(item.notes||'')}</textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-indigo" id="iSaveBtn" onclick="saveItem('${id}')">Save Changes</button>
+    </div>`;
+  document.getElementById('itemModal').classList.add('open');
+}
+
+function quickUpdate(id){
+  const item=items.find(i=>i.id===id);if(!item)return;
+  document.getElementById('itemModalContent').innerHTML=`
+    <div class="modal-title">🔢 Update Quantity</div>
+    <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:16px;">${escH(item.description)}</div>
+    <div class="fg"><label>Quantity On Hand</label><input type="number" id="qQty" min="0" value="${item.qty_on_hand}" style="font-size:24px;font-weight:700;text-align:center;"></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Minimum stock level: <strong>${item.qty_minimum}</strong></div>
+    <div class="fg"><label>Reason / Note</label><input type="text" id="qNote" placeholder="e.g. Used 2 for repair — 18 Apr 2026"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-indigo" onclick="saveQty('${id}')">Update</button>
+    </div>`;
+  document.getElementById('itemModal').classList.add('open');
+}
+
+async function saveQty(id){
+  const qty=parseInt(document.getElementById('qQty').value);
+  const note=document.getElementById('qNote').value.trim();
+  if(isNaN(qty)||qty<0){alert('Valid quantity required.');return;}
+  const{error}=await sb.from('spares_inventory').update({qty_on_hand:qty,notes:note||null,updated_at:new Date().toISOString(),updated_by:userProfile?.full_name||curUser.email}).eq('id',id);
+  if(error){alert('Error: '+error.message);return;}
+  closeModal();loadInventory();
+}
+
+async function saveItem(id){
+  const desc=document.getElementById('iDesc').value.trim();
+  if(!desc){alert('Description required.');return;}
+  const btn=document.getElementById('iSaveBtn');btn.disabled=true;btn.textContent='Saving…';
+  const payload={station_code:curStation,description:desc,part_number:document.getElementById('iPartNo').value.trim()||null,category:document.getElementById('iCat').value.trim()||null,qty_on_hand:parseInt(document.getElementById('iQtyHand').value)||0,qty_minimum:parseInt(document.getElementById('iQtyMin').value)||1,location:document.getElementById('iLoc').value.trim()||null,notes:document.getElementById('iNotes').value.trim()||null,updated_at:new Date().toISOString(),updated_by:userProfile?.full_name||curUser.email};
+  const{error}=id?await sb.from('spares_inventory').update(payload).eq('id',id):await sb.from('spares_inventory').insert(payload);
+  btn.disabled=false;btn.textContent=id?'Save Changes':'Add Item';
+  if(error){alert('Error: '+error.message);return;}
+  closeModal();loadInventory();
+}
+
+async function exportInventory(){
+  const rows=[['#','Description','Part Number','Category','Qty On Hand','Minimum','Status','Location','Notes','Last Updated']];
+  items.forEach((item,i)=>{
+    const st=item.qty_on_hand<item.qty_minimum?'Below Minimum':item.qty_on_hand<item.qty_minimum*1.5?'Low':'Adequate';
+    rows.push([i+1,item.description,item.part_number||'',item.category||'',item.qty_on_hand,item.qty_minimum,st,item.location||'',item.notes||'',item.updated_at?new Date(item.updated_at).toLocaleDateString('en-GB'):'']);
+  });
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  const a=document.createElement('a');a.href=url;a.download=`EASSy_Spares_${curStation}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
+}
+
+function closeModal(){document.getElementById('itemModal').classList.remove('open');}
+document.getElementById('itemModal').addEventListener('click',e=>{if(e.target===document.getElementById('itemModal'))closeModal();});
+init();
+</script>
+</body>
+</html>

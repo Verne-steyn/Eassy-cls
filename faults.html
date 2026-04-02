@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EASSy CLS — Fault Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--surface2:#f8f9fa;--border:#d0dae4;--text:#1a2a3a;--text-mid:#3a5068;--muted:#6b7f94;--orange:#ea580c;--orange-bg:#fff7ed;--orange-border:#fed7aa;--green:#059669;--green-bg:#f0fdf4;--amber:#d97706;--amber-bg:#fffbeb;--amber-border:#fde68a;--teal:#0077a8;--teal-bg:#f0f9ff;--red:#dc2626;--red-bg:#fef2f2;--p1:#dc2626;--p2:#d97706;--p3:#0077a8;--p4:#059669;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.page-header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,0.06);padding:0 32px;display:flex;align-items:center;gap:16px;height:58px;}
+.back-btn{display:flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;font-size:13px;font-weight:500;transition:color 0.2s;}
+.back-btn:hover{color:var(--orange);}
+.header-sep{width:1px;height:24px;background:var(--border);}
+.header-icon{width:32px;height:32px;background:var(--orange-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.header-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;letter-spacing:1px;text-transform:uppercase;color:var(--orange);}
+.header-spacer{flex:1;}
+.user-pill{background:var(--orange-bg);border:1px solid var(--orange-border);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--orange);font-weight:600;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;}
+.btn-orange{background:var(--orange);color:white;}.btn-orange:hover{background:#c2410c;}
+.btn-outline{background:transparent;color:var(--muted);border:1px solid var(--border);}.btn-outline:hover{border-color:var(--orange);color:var(--orange);}
+.btn-green{background:var(--green);color:white;}.btn-green:hover{background:#047857;}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.auth-overlay{position:fixed;inset:0;z-index:200;background:rgba(240,244,248,0.97);display:flex;align-items:center;justify-content:center;}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;width:380px;max-width:92vw;box-shadow:0 8px 32px rgba(0,0,0,0.10);}
+.auth-logo{text-align:center;margin-bottom:28px;}
+.auth-logo h2{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--orange);}
+.auth-logo p{font-size:12px;color:var(--muted);margin-top:4px;}
+.fg{margin-bottom:16px;}
+.fg label{display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--orange);}
+.fg textarea{resize:vertical;min-height:80px;}
+.auth-msg{font-size:12px;text-align:center;margin-top:12px;min-height:18px;color:var(--red);}
+.content{max-width:1400px;margin:0 auto;padding:28px 32px;}
+.station-bar{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 20px;margin-bottom:24px;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+.station-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+.station-chips{display:flex;flex-wrap:wrap;gap:8px;flex:1;}
+.station-chip{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text-mid);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.station-chip:hover{border-color:var(--orange);color:var(--orange);background:var(--orange-bg);}
+.station-chip.active{background:var(--orange);border-color:var(--orange);color:white;}
+.all-chip{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text-mid);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.all-chip:hover{border-color:var(--orange);color:var(--orange);}
+.all-chip.active{background:var(--orange);border-color:var(--orange);color:white;}
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.toolbar-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text);flex:1;}
+.stats-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;}
+.sc-red::before{background:var(--red);}
+.sc-orange::before{background:var(--orange);}
+.sc-amber::before{background:var(--amber);}
+.sc-green::before{background:var(--green);}
+.sc-teal::before{background:var(--teal);}
+.stat-label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.stat-value{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;line-height:1;}
+.sc-red .stat-value{color:var(--red);}
+.sc-orange .stat-value{color:var(--orange);}
+.sc-amber .stat-value{color:var(--amber);}
+.sc-green .stat-value{color:var(--green);}
+.sc-teal .stat-value{color:var(--teal);}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+/* Fault cards */
+.fault-grid{display:flex;flex-direction:column;gap:12px;}
+.fault-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,0.04);position:relative;overflow:hidden;cursor:pointer;transition:box-shadow 0.2s;}
+.fault-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.10);}
+.fault-card.p1{border-left:4px solid var(--p1);}
+.fault-card.p2{border-left:4px solid var(--p2);}
+.fault-card.p3{border-left:4px solid var(--p3);}
+.fault-card.p4{border-left:4px solid var(--p4);}
+.fault-card.closed{opacity:0.65;}
+.fault-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;flex-wrap:wrap;}
+.fault-ref{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;color:var(--muted);}
+.priority-badge{font-size:11px;font-weight:700;letter-spacing:0.5px;border-radius:6px;padding:3px 10px;border:1px solid;}
+.pb-p1{color:#b91c1c;background:#fef2f2;border-color:#fca5a5;}
+.pb-p2{color:#b45309;background:var(--amber-bg);border-color:var(--amber-border);}
+.pb-p3{color:var(--teal);background:var(--teal-bg);border-color:#bae6fd;}
+.pb-p4{color:var(--green);background:var(--green-bg);border-color:#bbf7d0;}
+.status-badge{font-size:10px;font-weight:700;letter-spacing:0.5px;border-radius:6px;padding:3px 10px;border:1px solid;}
+.sb-open{color:#b91c1c;background:#fef2f2;border-color:#fca5a5;}
+.sb-inprogress{color:var(--amber);background:var(--amber-bg);border-color:var(--amber-border);}
+.sb-closed{color:var(--green);background:var(--green-bg);border-color:#bbf7d0;}
+.fault-title{font-size:15px;font-weight:700;color:var(--text);flex:1;}
+.fault-meta{font-size:11px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;margin-bottom:8px;}
+.fault-desc{font-size:13px;color:var(--text-mid);line-height:1.5;}
+/* SLA timer */
+.sla-bar{margin-top:12px;background:var(--surface2);border-radius:8px;overflow:hidden;height:6px;}
+.sla-fill{height:100%;border-radius:8px;transition:width 0.3s;}
+.sla-green{background:var(--green);}
+.sla-amber{background:var(--amber);}
+.sla-red{background:var(--red);}
+.sla-label{font-size:10px;color:var(--muted);margin-top:4px;display:flex;justify-content:space-between;}
+/* Filter row */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.filter-chip{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;color:var(--text-mid);}
+.filter-chip:hover{border-color:var(--orange);color:var(--orange);}
+.filter-chip.active{background:var(--orange);border-color:var(--orange);color:white;}
+/* Modal */
+.modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(28,43,58,0.5);display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px;width:660px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 12px 48px rgba(0,0,0,0.15);}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--orange);margin-bottom:20px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;}
+.pri-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+.pri-btn{padding:10px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;text-align:center;font-size:12px;font-weight:700;transition:all 0.2s;}
+.p1b.sel{border-color:var(--p1);background:#fef2f2;color:var(--p1);}
+.p2b.sel{border-color:var(--p2);background:var(--amber-bg);color:var(--p2);}
+.p3b.sel{border-color:var(--p3);background:var(--teal-bg);color:var(--p3);}
+.p4b.sel{border-color:var(--p4);background:var(--green-bg);color:var(--p4);}
+.update-panel{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:20px;}
+.update-item{padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.update-item:last-child{border-bottom:none;}
+.update-meta{font-size:11px;color:var(--muted);margin-top:4px;}
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted);font-size:13px;}
+</style>
+</head>
+<body>
+
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-logo"><div style="font-size:32px;margin-bottom:12px;">⚠️</div><h2>Fault Management</h2><p>EASSy CLS Operations Portal</p></div>
+    <div class="fg"><label>Email</label><input type="email" id="loginEmail" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="fg"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn btn-orange" style="width:100%;justify-content:center;" onclick="doLogin()">Sign In</button>
+    <div class="auth-msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<header class="page-header">
+  <a href="home.html" class="back-btn">← Portal</a>
+  <div class="header-sep"></div>
+  <div class="header-icon">⚠️</div>
+  <div class="header-title">Fault Management</div>
+  <div class="header-spacer"></div>
+  <div id="loginArea" style="display:none;align-items:center;gap:8px;">
+    <span class="user-pill" id="userPill">—</span>
+    <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
+  </div>
+</header>
+
+<div class="content" id="mainContent" style="display:none;">
+  <div class="station-bar">
+    <span class="station-label">Station:</span>
+    <div class="station-chips">
+      <button class="all-chip active" onclick="selectStation('ALL')">🌍 All</button>
+      <button class="station-chip" onclick="selectStation('MNZ')">🇿🇦 MNZ</button>
+      <button class="station-chip" onclick="selectStation('MPT')">🇲🇿 MPT</button>
+      <button class="station-chip" onclick="selectStation('DES')">🇹🇿 DES</button>
+      <button class="station-chip" onclick="selectStation('MBS')">🇰🇪 MBS</button>
+      <button class="station-chip" onclick="selectStation('MGD')">🇸🇴 MGD</button>
+      <button class="station-chip" onclick="selectStation('DBT')">🇩🇯 DBT</button>
+      <button class="station-chip" onclick="selectStation('PSD')">🇸🇩 PSD</button>
+      <button class="station-chip" onclick="selectStation('TLR')">🇲🇬 TLR</button>
+      <button class="station-chip" onclick="selectStation('MRN')">🇰🇲 MRN</button>
+    </div>
+  </div>
+  <div id="mainArea"><div style="text-align:center;padding:40px;color:var(--muted);">⏳ Loading…</div></div>
+</div>
+
+<!-- New Fault / Update Modal -->
+<div class="modal-overlay" id="faultModal">
+  <div class="modal" id="faultModalContent"></div>
+</div>
+
+<script>
+const SUPABASE_URL='https://wpblebjftxcdfrwwguti.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmxlYmpmdHhjZGZyd3dndXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Njg3NTAsImV4cCI6MjA4OTU0NDc1MH0.oaBljcLPFa3JPLp_e-2FgCcylwAOPAdHpkzGctOwfo0';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const AW={'MRN':'assad.comorescables@outlook.com','TLR':'johary.ramboa@telma.mg','DBT':'farah.abdi@djibtel.dj','PSD':'abdelhameeda@sudatel.sd','MGD':'girde@dalkomsomalia.com','MBS':'totieno@telkom.co.ke','MNZ':'waynee@openserve.co.za','MPT':'nhiuane@tmcel.mz','DES':'omar.said@yas.co.tz','SUPER':'verne.steyn@wiocc.net'};
+const FLAGS={MNZ:'🇿🇦',MPT:'🇲🇿',DES:'🇹🇿',MBS:'🇰🇪',MGD:'🇸🇴',DBT:'🇩🇯',PSD:'🇸🇩',TLR:'🇲🇬',MRN:'🇰🇲'};
+// SLA hours per priority (from manual)
+const SLA={P1:4,P2:4,P3:8,P4:24};
+let curUser=null,userProfile=null,curStation='ALL',curFilter='open',selPri_='P1';
+
+async function doLogin(){const e=document.getElementById('loginEmail').value.trim(),p=document.getElementById('loginPassword').value,m=document.getElementById('loginMsg');m.textContent='Signing in…';const{error}=await sb.auth.signInWithPassword({email:e,password:p});if(error){m.textContent=error.message;}}
+async function doLogout(){await sb.auth.signOut();location.reload();}
+async function init(){const{data:{session}}=await sb.auth.getSession();if(session){curUser=session.user;await loadProfile();showApp();}sb.auth.onAuthStateChange(async(ev,s)=>{if(s&&!curUser){curUser=s.user;await loadProfile();showApp();}});}
+async function loadProfile(){const{data}=await sb.from('profiles').select('*').eq('id',curUser.id).single();userProfile=data;}
+function showApp(){document.getElementById('authOverlay').style.display='none';document.getElementById('mainContent').style.display='block';document.getElementById('loginArea').style.display='flex';document.getElementById('userPill').textContent=userProfile?.full_name||curUser.email;loadFaults();}
+function selectStation(s){curStation=s;document.querySelectorAll('.station-chip,.all-chip').forEach(c=>{c.classList.toggle('active',c.textContent.includes(s==='ALL'?'All':s));});loadFaults();}
+function setFilter(f){curFilter=f;document.querySelectorAll('.filter-chip').forEach(c=>c.classList.toggle('active',c.dataset.f===f));loadFaults();}
+function escH(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+async function loadFaults(){
+  const area=document.getElementById('mainArea');
+  area.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">⏳ Loading…</div>';
+  let q=sb.from('faults').select('*').order('created_at',{ascending:false});
+  if(curStation!=='ALL')q=q.eq('station_code',curStation);
+  if(curFilter==='open')q=q.neq('status','closed');
+  else if(curFilter==='closed')q=q.eq('status','closed');
+  else if(curFilter!=='all')q=q.eq('priority',curFilter);
+  const{data:faults}=await q;
+  // Stats
+  const all=faults||[];
+  const open=all.filter(f=>f.status!=='closed').length;
+  const p1=all.filter(f=>f.priority==='P1'&&f.status!=='closed').length;
+  const p2=all.filter(f=>f.priority==='P2'&&f.status!=='closed').length;
+  const closed=all.filter(f=>f.status==='closed').length;
+  const canCreate=Object.values(AW).includes(curUser.email);
+  const isSup=curUser.email===AW['SUPER'];
+
+  area.innerHTML=`
+    <div class="stats-strip">
+      <div class="stat-card sc-red"><div class="stat-label">Open Faults</div><div class="stat-value">${open}</div><div class="stat-sub">Require attention</div></div>
+      <div class="stat-card sc-orange"><div class="stat-label">P1 Critical</div><div class="stat-value">${p1}</div><div class="stat-sub">Traffic affecting</div></div>
+      <div class="stat-card sc-amber"><div class="stat-label">P2 Major</div><div class="stat-value">${p2}</div><div class="stat-sub">At risk</div></div>
+      <div class="stat-card sc-green"><div class="stat-label">Closed</div><div class="stat-value">${closed}</div><div class="stat-sub">Resolved</div></div>
+      <div class="stat-card sc-teal"><div class="stat-label">Total</div><div class="stat-value">${all.length}</div><div class="stat-sub">All records</div></div>
+    </div>
+    <div class="toolbar">
+      <div class="toolbar-title">⚠️ Fault Tickets — ${curStation==='ALL'?'All Stations':curStation}</div>
+      ${canCreate?`<button class="btn btn-orange" onclick="openNewFault()">+ Raise Fault</button>`:''}
+    </div>
+    <div class="filter-row">
+      ${[['open','Open'],['closed','Closed'],['all','All'],['P1','P1 Critical'],['P2','P2 Major'],['P3','P3 Minor'],['P4','P4 Warning']].map(([k,v])=>`<button class="filter-chip ${curFilter===k?'active':''}" data-f="${k}" onclick="setFilter('${k}')">${v}</button>`).join('')}
+    </div>
+    <div class="fault-grid" id="faultGrid">
+      ${all.length===0?`<div class="empty-state"><div style="font-size:40px;margin-bottom:12px;">✅</div>No faults match this filter</div>`:all.map(f=>renderFaultCard(f)).join('')}
+    </div>
+  `;
+}
+
+function renderFaultCard(f){
+  const pbc={'P1':'pb-p1','P2':'pb-p2','P3':'pb-p3','P4':'pb-p4'};
+  const sbc={'open':'sb-open','in_progress':'sb-inprogress','closed':'sb-closed'};
+  const sla=SLA[f.priority]||4;
+  const created=new Date(f.created_at);
+  const now=new Date();
+  const hoursElapsed=(now-created)/3600000;
+  const slaElapsed=Math.min(hoursElapsed/sla,1);
+  const slaClass=slaElapsed>=1?'sla-red':slaElapsed>=0.75?'sla-amber':'sla-green';
+  const slaRemain=f.status==='closed'?'Closed':'SLA: '+(hoursElapsed>=sla?'⚠ Exceeded by '+(hoursElapsed-sla).toFixed(1)+'h':((sla-hoursElapsed).toFixed(1)+'h remaining'));
+  const stFlag=FLAGS[f.station_code]||'';
+  return`<div class="fault-card ${f.priority.toLowerCase()} ${f.status==='closed'?'closed':''}" onclick="openFaultDetail('${f.id}')">
+    <div class="fault-header">
+      <span class="fault-ref">${f.fault_ref}</span>
+      <span class="priority-badge ${pbc[f.priority]||''}">⚡ ${f.priority} — ${f.priority==='P1'?'Critical':f.priority==='P2'?'Major':f.priority==='P3'?'Minor':'Warning'}</span>
+      <span class="status-badge ${sbc[f.status]||'sb-open'}">${f.status==='in_progress'?'In Progress':f.status==='closed'?'Closed':'Open'}</span>
+      <span style="font-size:12px;color:var(--muted);margin-left:auto;">${stFlag} ${f.station_code}</span>
+    </div>
+    <div class="fault-title">${escH(f.title)}</div>
+    <div class="fault-meta">
+      <span>📅 ${new Date(f.created_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</span>
+      <span>🕐 ${new Date(f.created_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span>
+      <span>👤 ${escH(f.raised_by)}</span>
+      ${f.assigned_to?`<span>🔧 ${escH(f.assigned_to)}</span>`:''}
+    </div>
+    ${f.description?`<div class="fault-desc">${escH(f.description.substring(0,200))}${f.description.length>200?'…':''}</div>`:''}
+    ${f.status!=='closed'?`<div class="sla-bar"><div class="sla-fill ${slaClass}" style="width:${Math.min(slaElapsed*100,100)}%"></div></div><div class="sla-label"><span>${slaRemain}</span><span>SLA: ${sla}h</span></div>`:''}
+  </div>`;
+}
+
+function genRef(station){return`${station}-FLT-${Date.now().toString().slice(-6)}`;}
+
+function openNewFault(){
+  selPri_='P1';
+  const canCreate=curStation!=='ALL';
+  const stationOptions=Object.keys(FLAGS).map(k=>`<option value="${k}" ${curStation===k?'selected':''}>${FLAGS[k]} ${k}</option>`).join('');
+  document.getElementById('faultModalContent').innerHTML=`
+    <div class="modal-title">⚠️ Raise New Fault</div>
+    <div class="fg"><label>Station</label><select id="fStation">${stationOptions}</select></div>
+    <div style="margin-bottom:10px;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Priority</div>
+    <div class="pri-row">
+      <div class="pri-btn p1b sel" data-p="P1" onclick="selFPri('P1')">P1<br><small>Critical</small></div>
+      <div class="pri-btn p2b" data-p="P2" onclick="selFPri('P2')">P2<br><small>Major</small></div>
+      <div class="pri-btn p3b" data-p="P3" onclick="selFPri('P3')">P3<br><small>Minor</small></div>
+      <div class="pri-btn p4b" data-p="P4" onclick="selFPri('P4')">P4<br><small>Warning</small></div>
+    </div>
+    <div class="fg"><label>Fault Title / Summary</label><input type="text" id="fTitle" placeholder="One-line description of the fault…" maxlength="200"></div>
+    <div class="fg"><label>Description</label><textarea id="fDesc" rows="3" placeholder="Initial observations, symptoms, alarms active…"></textarea></div>
+    <div class="fg"><label>Assigned To</label><input type="text" id="fAssigned" placeholder="Engineer name (optional)"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-orange" id="fSaveBtn" onclick="saveFault()">Raise Fault</button>
+    </div>`;
+  document.getElementById('faultModal').classList.add('open');
+}
+
+function selFPri(p){selPri_=p;document.querySelectorAll('.pri-btn').forEach(b=>b.classList.toggle('sel',b.dataset.p===p));}
+
+async function saveFault(){
+  const title=document.getElementById('fTitle').value.trim();
+  const station=document.getElementById('fStation').value;
+  if(!title||!station){alert('Title and station are required.');return;}
+  const btn=document.getElementById('fSaveBtn');btn.disabled=true;btn.textContent='Saving…';
+  const ref=genRef(station);
+  const{error}=await sb.from('faults').insert({station_code:station,fault_ref:ref,priority:selPri_,title,description:document.getElementById('fDesc').value.trim()||null,raised_by:userProfile?.full_name||curUser.email,raised_by_id:curUser.id,assigned_to:document.getElementById('fAssigned').value.trim()||null,status:'open'});
+  btn.disabled=false;btn.textContent='Raise Fault';
+  if(error){alert('Error: '+error.message);return;}
+  closeModal();loadFaults();
+}
+
+async function openFaultDetail(id){
+  document.getElementById('faultModalContent').innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">⏳ Loading…</div>';
+  document.getElementById('faultModal').classList.add('open');
+  const[{data:fault},{data:updates}]=await Promise.all([
+    sb.from('faults').select('*').eq('id',id).single(),
+    sb.from('fault_updates').select('*').eq('fault_id',id).order('created_at',{ascending:true})
+  ]);
+  if(!fault){document.getElementById('faultModalContent').innerHTML='<p>Not found.</p>';return;}
+  const canUpdate=curUser.email===AW[fault.station_code]||curUser.email===AW['SUPER'];
+  const pbc={'P1':'pb-p1','P2':'pb-p2','P3':'pb-p3','P4':'pb-p4'};
+  document.getElementById('faultModalContent').innerHTML=`
+    <div class="modal-title" style="display:flex;align-items:center;gap:10px;">
+      <span>⚠️ ${escH(fault.fault_ref)}</span>
+      <button style="margin-left:auto;background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);" onclick="closeModal()">✕</button>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+      <span class="priority-badge ${pbc[fault.priority]||''}">${fault.priority}</span>
+      <span class="status-badge ${fault.status==='closed'?'sb-closed':fault.status==='in_progress'?'sb-inprogress':'sb-open'}">${fault.status==='in_progress'?'In Progress':fault.status==='closed'?'Closed':'Open'}</span>
+      <span style="font-size:12px;color:var(--muted);">${FLAGS[fault.station_code]||''} ${fault.station_code}</span>
+    </div>
+    <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">${escH(fault.title)}</div>
+    ${fault.description?`<div style="font-size:13px;color:var(--text-mid);line-height:1.5;margin-bottom:12px;white-space:pre-wrap;">${escH(fault.description)}</div>`:''}
+    <div style="font-size:11px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+      <span>📅 ${new Date(fault.created_at).toLocaleString('en-GB')}</span>
+      <span>👤 Raised by: ${escH(fault.raised_by)}</span>
+      ${fault.assigned_to?`<span>🔧 Assigned: ${escH(fault.assigned_to)}</span>`:''}
+      ${fault.closed_at?`<span>✅ Closed: ${new Date(fault.closed_at).toLocaleString('en-GB')}</span>`:''}
+    </div>
+    <!-- Updates -->
+    <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Update History</div>
+    <div class="update-panel" style="margin-bottom:20px;max-height:200px;overflow-y:auto;">
+      ${(updates||[]).length===0?'<div style="font-size:12px;color:var(--muted);padding:8px 0;">No updates yet.</div>':(updates||[]).map(u=>`<div class="update-item">${escH(u.update_text)}<div class="update-meta">📅 ${new Date(u.created_at).toLocaleString('en-GB')} · ${escH(u.updated_by)}</div></div>`).join('')}
+    </div>
+    ${canUpdate&&fault.status!=='closed'?`
+    <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Add Update</div>
+    <div class="fg"><textarea id="updateText" rows="3" placeholder="Status update, actions taken, findings…"></textarea></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-orange" onclick="addUpdate('${id}','in_progress')">💬 Add Update</button>
+      <button class="btn btn-green" onclick="closeFault('${id}')">✅ Close Fault</button>
+      ${fault.status==='open'?`<button class="btn btn-outline" onclick="setInProgress('${id}')">▶ Set In Progress</button>`:''}
+    </div>`:''}
+  `;
+}
+
+async function addUpdate(id,status){
+  const text=document.getElementById('updateText').value.trim();
+  if(!text){alert('Update text required.');return;}
+  await Promise.all([
+    sb.from('fault_updates').insert({fault_id:id,update_text:text,updated_by:userProfile?.full_name||curUser.email,updated_by_id:curUser.id}),
+    sb.from('faults').update({status,updated_at:new Date().toISOString()}).eq('id',id)
+  ]);
+  closeModal();loadFaults();
+}
+
+async function closeFault(id){
+  const text=document.getElementById('updateText').value.trim();
+  if(!text){alert('Please enter a closure summary before closing.');return;}
+  await Promise.all([
+    sb.from('fault_updates').insert({fault_id:id,update_text:'[CLOSED] '+text,updated_by:userProfile?.full_name||curUser.email,updated_by_id:curUser.id}),
+    sb.from('faults').update({status:'closed',closed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id)
+  ]);
+  closeModal();loadFaults();
+}
+
+async function setInProgress(id){
+  await sb.from('faults').update({status:'in_progress',updated_at:new Date().toISOString()}).eq('id',id);
+  openFaultDetail(id);
+}
+
+function closeModal(){document.getElementById('faultModal').classList.remove('open');}
+document.getElementById('faultModal').addEventListener('click',e=>{if(e.target===document.getElementById('faultModal'))closeModal();});
+init();
+</script>
+</body>
+</html>

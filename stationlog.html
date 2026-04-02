@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EASSy CLS — Station Log</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#f4f6f9;--surface:#fff;--surface2:#f8f9fa;--border:#d0dae4;--text:#1a2a3a;--text-mid:#3a5068;--muted:#6b7f94;--rose:#e11d48;--rose-bg:#fff1f2;--rose-border:#fecdd3;--green:#059669;--green-bg:#f0fdf4;--amber:#d97706;--amber-bg:#fffbeb;--amber-border:#fde68a;--teal:#0077a8;--teal-bg:#f0f9ff;--red:#dc2626;--red-bg:#fef2f2;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.page-header{position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:1px solid var(--border);box-shadow:0 1px 6px rgba(0,0,0,0.06);padding:0 32px;display:flex;align-items:center;gap:16px;height:58px;}
+.back-btn{display:flex;align-items:center;gap:6px;color:var(--muted);text-decoration:none;font-size:13px;font-weight:500;transition:color 0.2s;}
+.back-btn:hover{color:var(--rose);}
+.header-sep{width:1px;height:24px;background:var(--border);}
+.header-icon{width:32px;height:32px;background:var(--rose-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.header-title{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:18px;letter-spacing:1px;text-transform:uppercase;color:var(--rose);}
+.header-spacer{flex:1;}
+.user-pill{background:var(--rose-bg);border:1px solid var(--rose-border);border-radius:20px;padding:4px 12px;font-size:12px;color:var(--rose);font-weight:600;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;text-decoration:none;}
+.btn-rose{background:var(--rose);color:white;}
+.btn-rose:hover{background:#be123c;}
+.btn-outline{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-outline:hover{border-color:var(--rose);color:var(--rose);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-green{background:var(--green);color:white;}
+.btn-green:hover{background:#047857;}
+.auth-overlay{position:fixed;inset:0;z-index:200;background:rgba(240,244,248,0.97);display:flex;align-items:center;justify-content:center;}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;width:380px;max-width:92vw;box-shadow:0 8px 32px rgba(0,0,0,0.10);}
+.auth-logo{text-align:center;margin-bottom:28px;}
+.auth-logo h2{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--rose);}
+.auth-logo p{font-size:12px;color:var(--muted);margin-top:4px;}
+.fg{margin-bottom:16px;}
+.fg label{display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:'Barlow',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--rose);}
+.fg textarea{resize:vertical;min-height:80px;}
+.auth-msg{font-size:12px;text-align:center;margin-top:12px;min-height:18px;color:var(--red);}
+.content{max-width:1300px;margin:0 auto;padding:28px 32px;}
+.station-bar{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 20px;margin-bottom:24px;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+.station-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+.station-chips{display:flex;flex-wrap:wrap;gap:8px;flex:1;}
+.station-chip{padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text-mid);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.5px;cursor:pointer;transition:all 0.2s;}
+.station-chip:hover{border-color:var(--rose);color:var(--rose);background:var(--rose-bg);}
+.station-chip.active{background:var(--rose);border-color:var(--rose);color:white;}
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+.toolbar-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text);flex:1;}
+.filter-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.filter-chip{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;color:var(--text-mid);}
+.filter-chip:hover{border-color:var(--rose);color:var(--rose);}
+.filter-chip.active{background:var(--rose);border-color:var(--rose);color:white;}
+.log-panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+.log-entry{display:flex;gap:16px;padding:16px 20px;border-bottom:1px solid var(--border);transition:background 0.15s;}
+.log-entry:hover{background:var(--surface2);}
+.log-entry:last-child{border-bottom:none;}
+.log-type-dot{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;margin-top:2px;}
+.dot-alarm{background:#fef2f2;}.dot-handover{background:#f0f9ff;}.dot-visitor{background:#f0fdf4;}
+.dot-maintenance{background:#fffbeb;}.dot-security{background:#fdf4ff;}.dot-fault{background:#fff7ed;}.dot-general{background:#f8f9fa;}
+.log-body{flex:1;min-width:0;}
+.log-header{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+.log-type-badge{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border-radius:6px;padding:2px 8px;border:1px solid;flex-shrink:0;}
+.badge-alarm{color:#b91c1c;background:#fef2f2;border-color:#fca5a5;}
+.badge-handover{color:var(--teal);background:var(--teal-bg);border-color:#bae6fd;}
+.badge-visitor{color:var(--green);background:var(--green-bg);border-color:#bbf7d0;}
+.badge-maintenance{color:var(--amber);background:var(--amber-bg);border-color:var(--amber-border);}
+.badge-security{color:#7c3aed;background:#f5f3ff;border-color:#ddd6fe;}
+.badge-fault{color:#ea580c;background:#fff7ed;border-color:#fed7aa;}
+.badge-general{color:var(--muted);background:var(--surface2);border-color:var(--border);}
+.badge-power{color:#b91c1c;background:#fef2f2;border-color:#fca5a5;}
+.log-summary{font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.log-detail{font-size:13px;color:var(--text-mid);line-height:1.5;white-space:pre-wrap;word-break:break-word;}
+.log-meta{font-size:11px;color:var(--muted);margin-top:6px;display:flex;gap:12px;flex-wrap:wrap;}
+.modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(28,43,58,0.5);display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px;width:600px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 12px 48px rgba(0,0,0,0.15);}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--rose);margin-bottom:20px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px;}
+.type-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;}
+.type-btn{padding:10px 6px;border-radius:10px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;text-align:center;transition:all 0.2s;}
+.type-btn:hover{border-color:var(--rose);}
+.type-btn.sel{border-color:var(--rose);background:var(--rose-bg);}
+.type-btn .ti{font-size:20px;display:block;margin-bottom:4px;}
+.type-btn .tn{font-size:11px;font-weight:600;color:var(--text-mid);}
+.type-btn.sel .tn{color:var(--rose);}
+.pri-row{display:flex;gap:10px;margin-bottom:16px;}
+.pri-btn{flex:1;padding:8px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;text-align:center;font-size:12px;font-weight:600;transition:all 0.2s;}
+.pri-btn.pn.sel{border-color:var(--green);background:var(--green-bg);color:var(--green);}
+.pri-btn.pi.sel{border-color:var(--amber);background:var(--amber-bg);color:var(--amber);}
+.pri-btn.pu.sel{border-color:var(--red);background:var(--red-bg);color:var(--red);}
+.stats-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;position:relative;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0;}
+.sc-rose::before{background:var(--rose);}
+.sc-green::before{background:var(--green);}
+.sc-amber::before{background:var(--amber);}
+.sc-teal::before{background:var(--teal);}
+.sc-red::before{background:var(--red);}
+.stat-label{font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.stat-value{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;line-height:1;}
+.sc-rose .stat-value{color:var(--rose);}
+.sc-green .stat-value{color:var(--green);}
+.sc-amber .stat-value{color:var(--amber);}
+.sc-teal .stat-value{color:var(--teal);}
+.sc-red .stat-value{color:var(--red);}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted);font-size:13px;}
+.load-more{text-align:center;padding:16px;border-top:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-logo"><div style="font-size:32px;margin-bottom:12px;">📒</div><h2>Station Log</h2><p>EASSy CLS Operations Portal</p></div>
+    <div class="fg"><label>Email</label><input type="email" id="loginEmail" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="fg"><label>Password</label><input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn btn-rose" style="width:100%;justify-content:center;" onclick="doLogin()">Sign In</button>
+    <div class="auth-msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<header class="page-header">
+  <a href="home.html" class="back-btn">← Portal</a>
+  <div class="header-sep"></div>
+  <div class="header-icon">📒</div>
+  <div class="header-title">Station Log</div>
+  <div class="header-spacer"></div>
+  <div id="loginArea" style="display:none;align-items:center;gap:8px;">
+    <span class="user-pill" id="userPill">—</span>
+    <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
+  </div>
+</header>
+
+<div class="content" id="mainContent" style="display:none;">
+  <div class="station-bar">
+    <span class="station-label">Station:</span>
+    <div class="station-chips">
+      <button class="station-chip" onclick="selectStation('MNZ')">🇿🇦 MNZ</button>
+      <button class="station-chip" onclick="selectStation('MPT')">🇲🇿 MPT</button>
+      <button class="station-chip" onclick="selectStation('DES')">🇹🇿 DES</button>
+      <button class="station-chip" onclick="selectStation('MBS')">🇰🇪 MBS</button>
+      <button class="station-chip" onclick="selectStation('MGD')">🇸🇴 MGD</button>
+      <button class="station-chip" onclick="selectStation('DBT')">🇩🇯 DBT</button>
+      <button class="station-chip" onclick="selectStation('PSD')">🇸🇩 PSD</button>
+      <button class="station-chip" onclick="selectStation('TLR')">🇲🇬 TLR</button>
+      <button class="station-chip" onclick="selectStation('MRN')">🇰🇲 MRN</button>
+    </div>
+  </div>
+  <div id="stationContent"><div style="text-align:center;padding:40px;color:var(--muted);font-size:13px;">Select a station above to view its log.</div></div>
+</div>
+
+<!-- New Entry Modal -->
+<div class="modal-overlay" id="newEntryModal">
+  <div class="modal">
+    <div class="modal-title">📝 New Log Entry</div>
+    <div style="margin-bottom:10px;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Entry Type</div>
+    <div class="type-grid" id="typeGrid">
+      <div class="type-btn sel" data-type="general"      onclick="selType('general')">     <span class="ti">📋</span><span class="tn">General</span></div>
+      <div class="type-btn"    data-type="alarm"         onclick="selType('alarm')">       <span class="ti">🔔</span><span class="tn">Alarm</span></div>
+      <div class="type-btn"    data-type="fault"         onclick="selType('fault')">       <span class="ti">⚠️</span><span class="tn">Fault</span></div>
+      <div class="type-btn"    data-type="maintenance"   onclick="selType('maintenance')"> <span class="ti">🔧</span><span class="tn">Maintenance</span></div>
+      <div class="type-btn"    data-type="visitor"       onclick="selType('visitor')">     <span class="ti">👤</span><span class="tn">Visitor/Access</span></div>
+      <div class="type-btn"    data-type="handover"      onclick="selType('handover')">    <span class="ti">🔄</span><span class="tn">Shift Handover</span></div>
+      <div class="type-btn"    data-type="security"      onclick="selType('security')">    <span class="ti">🔒</span><span class="tn">Security</span></div>
+      <div class="type-btn"    data-type="power"         onclick="selType('power')">       <span class="ti">⚡</span><span class="tn">Power / PFE</span></div>
+    </div>
+    <div style="margin-bottom:10px;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Priority</div>
+    <div class="pri-row">
+      <button class="pri-btn pn sel" data-p="normal"    onclick="selPri('normal')">Normal</button>
+      <button class="pri-btn pi"     data-p="important" onclick="selPri('important')">Important</button>
+      <button class="pri-btn pu"     data-p="urgent"    onclick="selPri('urgent')">Urgent</button>
+    </div>
+    <div class="fg"><label>Summary (one line)</label><input type="text" id="entrySummary" placeholder="Brief description of the event…" maxlength="200"></div>
+    <div class="fg"><label>Detail / Notes</label><textarea id="entryDetail" rows="4" placeholder="Full description, actions taken, personnel involved, follow-up required…"></textarea></div>
+    <div class="fg" id="fHandover" style="display:none;"><label>Incoming Engineer</label><input type="text" id="entryIncoming" placeholder="Name of incoming engineer"></div>
+    <div class="fg" id="fVisitor"  style="display:none;"><label>Visitor / Company / Reason</label><input type="text" id="entryVisitor" placeholder="e.g. John Smith — Alcatel — Equipment inspection"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-rose" id="saveBtn" onclick="saveEntry()">Save Entry</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL='https://wpblebjftxcdfrwwguti.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmxlYmpmdHhjZGZyd3dndXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Njg3NTAsImV4cCI6MjA4OTU0NDc1MH0.oaBljcLPFa3JPLp_e-2FgCcylwAOPAdHpkzGctOwfo0';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const AW={'MRN':'assad.comorescables@outlook.com','TLR':'johary.ramboa@telma.mg','DBT':'farah.abdi@djibtel.dj','PSD':'abdelhameeda@sudatel.sd','MGD':'girde@dalkomsomalia.com','MBS':'totieno@telkom.co.ke','MNZ':'waynee@openserve.co.za','MPT':'nhiuane@tmcel.mz','DES':'omar.said@yas.co.tz','SUPER':'verne.steyn@wiocc.net'};
+const FLAGS={MNZ:'🇿🇦',MPT:'🇲🇿',DES:'🇹🇿',MBS:'🇰🇪',MGD:'🇸🇴',DBT:'🇩🇯',PSD:'🇸🇩',TLR:'🇲🇬',MRN:'🇰🇲'};
+const NAMES={MNZ:'Mtunzini',MPT:'Maputo',DES:'Dar es Salaam',MBS:'Mombasa',MGD:'Mogadishu',DBT:'Djibouti',PSD:'Port Sudan',TLR:'Toliary',MRN:'Moroni'};
+const TC={general:{icon:'📋',label:'General',bc:'badge-general',dc:'dot-general'},alarm:{icon:'🔔',label:'Alarm',bc:'badge-alarm',dc:'dot-alarm'},fault:{icon:'⚠️',label:'Fault',bc:'badge-fault',dc:'dot-fault'},maintenance:{icon:'🔧',label:'Maintenance',bc:'badge-maintenance',dc:'dot-maintenance'},visitor:{icon:'👤',label:'Visitor/Access',bc:'badge-visitor',dc:'dot-visitor'},handover:{icon:'🔄',label:'Shift Handover',bc:'badge-handover',dc:'dot-handover'},security:{icon:'🔒',label:'Security',bc:'badge-security',dc:'dot-security'},power:{icon:'⚡',label:'Power/PFE',bc:'badge-power',dc:'dot-alarm'}};
+let curUser=null,userProfile=null,curStation=null,selType_='general',selPri_='normal',curFilter='all',offset=0;
+const PAGE=20;
+
+async function doLogin(){const e=document.getElementById('loginEmail').value.trim(),p=document.getElementById('loginPassword').value,m=document.getElementById('loginMsg');m.textContent='Signing in…';const{error}=await sb.auth.signInWithPassword({email:e,password:p});if(error){m.textContent=error.message;}}
+async function doLogout(){await sb.auth.signOut();location.reload();}
+async function init(){const{data:{session}}=await sb.auth.getSession();if(session){curUser=session.user;await loadProfile();showApp();}sb.auth.onAuthStateChange(async(ev,s)=>{if(s&&!curUser){curUser=s.user;await loadProfile();showApp();}});}
+async function loadProfile(){const{data}=await sb.from('profiles').select('*').eq('id',curUser.id).single();userProfile=data;}
+function showApp(){document.getElementById('authOverlay').style.display='none';document.getElementById('mainContent').style.display='block';document.getElementById('loginArea').style.display='flex';document.getElementById('userPill').textContent=userProfile?.full_name||curUser.email;const sup=curUser.email===AW['SUPER'];if(userProfile?.station_code&&!sup)selectStation(userProfile.station_code);}
+function selectStation(c){curStation=c;offset=0;document.querySelectorAll('.station-chip').forEach(x=>x.classList.toggle('active',x.textContent.includes(c)));loadLog();}
+function escH(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+async function loadLog(){
+  if(!curStation)return;
+  const el=document.getElementById('stationContent');
+  el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">⏳ Loading…</div>';
+  const canWrite=curUser.email===AW[curStation]||curUser.email===AW['SUPER'];
+  const today=new Date().toISOString().split('T')[0];
+  const mStart=today.substring(0,7)+'-01';
+  const[{data:todayE},{data:monthE},{data:urgentE}]=await Promise.all([
+    sb.from('station_log').select('id,entry_type').eq('station_code',curStation).gte('created_at',today),
+    sb.from('station_log').select('id').eq('station_code',curStation).gte('created_at',mStart),
+    sb.from('station_log').select('id').eq('station_code',curStation).eq('priority','urgent').eq('resolved',false)
+  ]);
+  let q=sb.from('station_log').select('*').eq('station_code',curStation).order('created_at',{ascending:false}).range(offset,offset+PAGE-1);
+  if(curFilter!=='all')q=q.eq('entry_type',curFilter);
+  const{data:entries}=await q;
+  const alarms=(todayE||[]).filter(e=>e.entry_type==='alarm').length;
+  const filterLabels={all:'All',alarm:'Alarm',fault:'Fault',maintenance:'Maintenance',visitor:'Visitor/Access',handover:'Shift Handover',security:'Security',power:'Power/PFE',general:'General'};
+  el.innerHTML=`
+    <div class="stats-strip">
+      <div class="stat-card sc-rose"><div class="stat-label">Today's Entries</div><div class="stat-value">${(todayE||[]).length}</div><div class="stat-sub">Logged today</div></div>
+      <div class="stat-card sc-amber"><div class="stat-label">Today's Alarms</div><div class="stat-value">${alarms}</div><div class="stat-sub">Alarm entries</div></div>
+      <div class="stat-card sc-red"><div class="stat-label">Open Urgent</div><div class="stat-value">${(urgentE||[]).length}</div><div class="stat-sub">Unresolved</div></div>
+      <div class="stat-card sc-teal"><div class="stat-label">This Month</div><div class="stat-value">${(monthE||[]).length}</div><div class="stat-sub">Total entries</div></div>
+      <div class="stat-card sc-green"><div class="stat-label">Station</div><div class="stat-value" style="font-size:22px">${FLAGS[curStation]||''}</div><div class="stat-sub">${NAMES[curStation]||curStation}</div></div>
+    </div>
+    <div class="toolbar">
+      <div class="toolbar-title">${FLAGS[curStation]||''} ${curStation} — Station Log</div>
+      ${canWrite?`<button class="btn btn-rose" onclick="openModal()">+ New Entry</button>`:''}
+      <button class="btn btn-outline btn-sm" onclick="exportLog()">⬇ Export CSV</button>
+    </div>
+    <div class="filter-chips">
+      ${Object.entries(filterLabels).map(([k,v])=>`<button class="filter-chip ${curFilter===k?'active':''}" onclick="setFilter('${k}')">${v}</button>`).join('')}
+    </div>
+    <div class="log-panel" id="logPanel">${renderEntries(entries||[])}</div>
+    ${(entries||[]).length===PAGE?`<div class="load-more"><button class="btn btn-outline" onclick="loadMore()">Load More</button></div>`:''}
+  `;
+}
+
+function renderEntries(entries){
+  if(!entries.length)return`<div class="empty-state"><div style="font-size:40px;margin-bottom:12px;">📒</div>No log entries${curFilter!=='all'?' for this filter':''}</div>`;
+  return entries.map(e=>{
+    const t=TC[e.entry_type]||TC.general;
+    const dt=new Date(e.created_at);
+    const ds=dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+    const ts=dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const pBadge=e.priority==='urgent'?'<span style="color:var(--red);font-weight:700;font-size:11px;">🔴 URGENT</span>':e.priority==='important'?'<span style="color:var(--amber);font-weight:700;font-size:11px;">🟡 IMPORTANT</span>':'';
+    const rBadge=e.resolved?'<span style="color:var(--green);font-size:11px;">✓ Resolved</span>':'';
+    const resolveBtn=!e.resolved&&e.priority!=='normal'?`<span><button style="font-size:11px;color:var(--green);background:none;border:none;cursor:pointer;font-weight:600;" onclick="markResolved('${e.id}')">Mark Resolved</button></span>`:'';
+    return`<div class="log-entry">
+      <div class="log-type-dot ${t.dc}">${t.icon}</div>
+      <div class="log-body">
+        <div class="log-header"><span class="log-type-badge ${t.bc}">${t.label}</span>${pBadge}${rBadge}</div>
+        <div class="log-summary">${escH(e.summary)}</div>
+        ${e.detail?`<div class="log-detail">${escH(e.detail)}</div>`:''}
+        ${e.visitor_name?`<div style="font-size:12px;color:var(--text-mid);margin-top:4px">👤 ${escH(e.visitor_name)}</div>`:''}
+        ${e.incoming_engineer?`<div style="font-size:12px;color:var(--text-mid);margin-top:4px">🔄 Incoming: ${escH(e.incoming_engineer)}</div>`:''}
+        <div class="log-meta"><span>📅 ${ds}</span><span>🕐 ${ts}</span><span>✍️ ${escH(e.logged_by)}</span>${resolveBtn}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(f){curFilter=f;offset=0;loadLog();}
+async function loadMore(){offset+=PAGE;let q=sb.from('station_log').select('*').eq('station_code',curStation).order('created_at',{ascending:false}).range(offset,offset+PAGE-1);if(curFilter!=='all')q=q.eq('entry_type',curFilter);const{data}=await q;const p=document.getElementById('logPanel');if(p)p.insertAdjacentHTML('beforeend',renderEntries(data||[]));}
+function openModal(){document.getElementById('newEntryModal').classList.add('open');}
+function closeModal(){document.getElementById('newEntryModal').classList.remove('open');}
+function selType(t){selType_=t;document.querySelectorAll('.type-btn').forEach(b=>b.classList.toggle('sel',b.dataset.type===t));document.getElementById('fHandover').style.display=t==='handover'?'block':'none';document.getElementById('fVisitor').style.display=t==='visitor'?'block':'none';}
+function selPri(p){selPri_=p;document.querySelectorAll('.pri-btn').forEach(b=>b.classList.toggle('sel',b.dataset.p===p));}
+
+async function saveEntry(){
+  const s=document.getElementById('entrySummary').value.trim();
+  if(!s){alert('Summary is required.');return;}
+  const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='Saving…';
+  const{error}=await sb.from('station_log').insert({station_code:curStation,entry_type:selType_,priority:selPri_,summary:s,detail:document.getElementById('entryDetail').value.trim()||null,logged_by:userProfile?.full_name||curUser.email,logged_by_id:curUser.id,incoming_engineer:selType_==='handover'?document.getElementById('entryIncoming').value.trim()||null:null,visitor_name:selType_==='visitor'?document.getElementById('entryVisitor').value.trim()||null:null,resolved:false});
+  btn.disabled=false;btn.textContent='Save Entry';
+  if(error){alert('Error: '+error.message);return;}
+  ['entrySummary','entryDetail','entryIncoming','entryVisitor'].forEach(id=>document.getElementById(id).value='');
+  selType('general');selPri('normal');closeModal();offset=0;loadLog();
+}
+
+async function markResolved(id){await sb.from('station_log').update({resolved:true}).eq('id',id);loadLog();}
+
+async function exportLog(){
+  const{data}=await sb.from('station_log').select('*').eq('station_code',curStation).order('created_at',{ascending:false});
+  const rows=[['Date/Time UTC','Type','Priority','Summary','Detail','Logged By','Resolved','Visitor','Incoming Engineer']];
+  (data||[]).forEach(e=>rows.push([new Date(e.created_at).toISOString(),e.entry_type,e.priority,e.summary,e.detail||'',e.logged_by,e.resolved?'Yes':'No',e.visitor_name||'',e.incoming_engineer||'']));
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  const a=document.createElement('a');a.href=url;a.download=`EASSy_Log_${curStation}_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
+}
+
+document.getElementById('newEntryModal').addEventListener('click',e=>{if(e.target===document.getElementById('newEntryModal'))closeModal();});
+init();
+</script>
+</body>
+</html>
