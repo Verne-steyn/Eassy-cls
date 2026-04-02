@@ -28,6 +28,10 @@
     --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
     --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
     --shadow-lg: 0 12px 40px rgba(0,0,0,0.10);
+    --violet: #7c3aed;
+    --violet-light: #a78bfa;
+    --violet-bg: #f5f3ff;
+    --violet-border: #ddd6fe;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -241,9 +245,13 @@
   /* ── MODULE CARDS ── */
   .modules-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
     margin-bottom: 40px;
+  }
+
+  @media (max-width: 1100px) {
+    .modules-row { grid-template-columns: repeat(2, 1fr); }
   }
 
   @media (max-width: 860px) {
@@ -258,7 +266,7 @@
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 16px;
-    padding: 28px;
+    padding: 20px;
     text-decoration: none;
     display: flex;
     flex-direction: column;
@@ -279,6 +287,7 @@
   .module-card.routines:hover { border-color: var(--teal); }
   .module-card.tools:hover { border-color: var(--amber); }
   .module-card.testequip:hover { border-color: var(--green); }
+  .module-card.jointing:hover { border-color: var(--violet); }
 
   .module-card-accent {
     position: absolute;
@@ -290,43 +299,45 @@
   .routines .module-card-accent { background: var(--teal); }
   .tools .module-card-accent { background: var(--amber); }
   .testequip .module-card-accent { background: var(--green); }
+  .jointing .module-card-accent { background: var(--violet); }
 
   .module-icon-wrap {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
-    margin-bottom: 16px;
+    font-size: 18px;
+    margin-bottom: 12px;
   }
 
   .routines .module-icon-wrap { background: var(--teal-bg); }
   .tools .module-icon-wrap { background: var(--amber-bg); }
   .testequip .module-icon-wrap { background: var(--green-bg); }
+  .jointing .module-icon-wrap { background: var(--violet-bg); }
 
   .module-card-title {
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 800;
-    font-size: 17px;
+    font-size: 15px;
     color: var(--text);
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
   .module-card-desc {
-    font-size: 13px;
+    font-size: 12px;
     color: var(--text-mid);
-    line-height: 1.6;
+    line-height: 1.5;
     flex: 1;
-    margin-bottom: 20px;
+    margin-bottom: 14px;
   }
 
   .module-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 20px;
+    gap: 5px;
+    margin-bottom: 14px;
   }
 
   .tag {
@@ -341,6 +352,7 @@
   .routines .tag { color: var(--teal); border-color: var(--teal-border); background: var(--teal-bg); }
   .tools .tag { color: var(--amber); border-color: var(--amber-border); background: var(--amber-bg); }
   .testequip .tag { color: var(--green); border-color: var(--green-border); background: var(--green-bg); }
+  .jointing .tag { color: var(--violet); border-color: var(--violet-border); background: var(--violet-bg); }
 
   .module-cta {
     font-size: 13px;
@@ -354,6 +366,7 @@
   .routines .module-cta { color: var(--teal); }
   .tools .module-cta { color: var(--amber); }
   .testequip .module-cta { color: var(--green); }
+  .jointing .module-cta { color: var(--violet); }
 
   .module-card:hover .module-cta { gap: 10px; }
 
@@ -666,7 +679,7 @@
       <div class="hero-stat-label">Stations</div>
     </div>
     <div class="hero-stat">
-      <div class="hero-stat-val">3</div>
+      <div class="hero-stat-val">4</div>
       <div class="hero-stat-label">Modules</div>
     </div>
     <div class="hero-stat">
@@ -722,6 +735,19 @@
         <span class="tag">Redundancy</span>
       </div>
       <div class="module-cta">Open Test Equip →</div>
+    </a>
+
+    <a href="jointing.html" class="module-card jointing" onclick="return gotoModule(event,'jointing.html')">
+      <div class="module-card-accent"></div>
+      <div class="module-icon-wrap">🛠️</div>
+      <div class="module-card-title">Jointing Support</div>
+      <div class="module-card-desc">Monthly pre-jointing readiness check — confirms all jointing support items are on-site and available before cable jointing operations begin.</div>
+      <div class="module-tags">
+        <span class="tag">Monthly Check</span>
+        <span class="tag">Site Readiness</span>
+        <span class="tag">13 Items</span>
+      </div>
+      <div class="module-cta">Open Jointing →</div>
     </a>
 
   </div>
