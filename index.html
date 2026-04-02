@@ -1586,7 +1586,7 @@ function buildRoutineForm(routineType) {
         </div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-secondary btn-sm" onclick="loadExisting('${routineType}')">Load Saved</button>
-          <button class="btn btn-primary btn-sm" onclick="submitRoutine('${routineType}')">Save Routine</button>
+          <button class="btn btn-primary btn-sm" id="save-btn-${routineType}" onclick="submitRoutine('${routineType}')">Save Routine</button>
         </div>
       </div>
       <div class="card-body">
@@ -1620,7 +1620,7 @@ function buildRoutineForm(routineType) {
 
   html += `
         <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:8px">
-          <button class="btn btn-primary" onclick="submitRoutine('${routineType}')">Save Routine</button>
+          <button class="btn btn-primary" id="save-btn-${routineType}" onclick="submitRoutine('${routineType}')">Save Routine</button>
         </div>
       </div>
     </div>`;
@@ -1727,6 +1727,10 @@ async function getPreviousSubmission(routineType) {
 }
 
 async function submitRoutine(routineType) {
+  // Disable button and show saving state
+  const saveBtn = document.getElementById(`save-btn-${routineType}`);
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+
   const routine = ROUTINES[routineType];
   const periodKey = getPeriodKey(routine.frequency);
   const data = {};
@@ -1756,6 +1760,7 @@ async function submitRoutine(routineType) {
         const previous = parseFloat(prev[key]);
         if (!isNaN(current) && !isNaN(previous) && current < previous) {
           const label = key === 'g1_hours' ? 'Genset 1' : 'Genset 2';
+          if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Routine'; }
           showToast(`${label} Hours run (${current}) cannot be less than previous value (${previous}).`, 'error');
           const input = document.getElementById(`input-${routineType}-${key}`);
           if (input) { input.classList.add('variance-flag'); input.focus(); }
@@ -1773,6 +1778,7 @@ async function submitRoutine(routineType) {
       const avg = (vPU1 + vPU2) / 2;
       const diff = Math.abs(vPU1 - vPU2) / avg;
       if (diff > 0.05) {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Routine'; }
         showToast(`PFE Voltage PU1 (${vPU1}) and PU2 (${vPU2}) differ by ${(diff*100).toFixed(1)}% — exceeds 5% limit. Please verify readings.`, 'error');
         const i1 = document.getElementById('input-daily_equipment-pfe_v_pu1');
         const i2 = document.getElementById('input-daily_equipment-pfe_v_pu2');
@@ -1789,6 +1795,7 @@ async function submitRoutine(routineType) {
       const avg = (iPU1 + iPU2) / 2;
       const diff = Math.abs(iPU1 - iPU2) / avg;
       if (diff > 0.05) {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Routine'; }
         showToast(`PFE Current PU1 (${iPU1}) and PU2 (${iPU2}) differ by ${(diff*100).toFixed(1)}% — exceeds 5% limit. Please verify readings.`, 'error');
         const i1 = document.getElementById('input-daily_equipment-pfe_i_pu1');
         const i2 = document.getElementById('input-daily_equipment-pfe_i_pu2');
@@ -1802,6 +1809,7 @@ async function submitRoutine(routineType) {
     const pol1 = data.pfe_pol_pu1;
     const pol2 = data.pfe_pol_pu2;
     if (pol1 && pol2 && pol1 !== pol2) {
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Routine'; }
       showToast(`PFE Polarity mismatch — PU1 is ${pol1} but PU2 is ${pol2}. Polarity must be the same on both PUs.`, 'error');
       const i1 = document.getElementById('input-daily_equipment-pfe_pol_pu1');
       const i2 = document.getElementById('input-daily_equipment-pfe_pol_pu2');
@@ -1814,6 +1822,7 @@ async function submitRoutine(routineType) {
     const earth1 = data.pfe_earth_pu1;
     const earth2 = data.pfe_earth_pu2;
     if (earth1 && earth2 && earth1 !== earth2) {
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Routine'; }
       showToast(`PFE Earth in use mismatch — PU1 is ${earth1} but PU2 is ${earth2}. Earth in use must be the same on both PUs.`, 'error');
       const i1 = document.getElementById('input-daily_equipment-pfe_earth_pu1');
       const i2 = document.getElementById('input-daily_equipment-pfe_earth_pu2');
@@ -1838,6 +1847,7 @@ async function submitRoutine(routineType) {
     .upsert(payload, { onConflict: 'station_code,routine_type,period_key' });
 
   if (error) {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Routine'; }
     showToast('Error saving: ' + error.message, 'error');
     return;
   }
@@ -1845,6 +1855,7 @@ async function submitRoutine(routineType) {
   // Set baselines if first submission
   await setBaselinesIfFirst(routineType, data);
 
+  if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '✓ Saved'; setTimeout(() => { if (saveBtn) saveBtn.textContent = 'Save Routine'; }, 2000); }
   showToast('Routine saved successfully!');
 }
 
@@ -1913,27 +1924,32 @@ async function loadAllBaselines() {
 
 async function setBaselinesIfFirst(routineType, data) {
   const routine = ROUTINES[routineType];
-  const numericKeys = [];
+  const toInsert = [];
+
   routine.sections.forEach(s => s.items.forEach(it => {
-    if (it.type === 'number' && data[it.key]) numericKeys.push(it.key);
+    if (it.type !== 'number' || !data[it.key]) return;
+    const bk = `${routineType}:${it.key}`;
+    if (currentBaselines[bk] !== undefined) return;
+    const val = parseFloat(data[it.key]);
+    if (isNaN(val)) return;
+    toInsert.push({
+      station_code: currentProfile.station_code,
+      routine_type: routineType,
+      field_key: it.key,
+      baseline_value: val,
+      set_by: currentUser.id,
+    });
   }));
 
-  for (const key of numericKeys) {
-    const bk = `${routineType}:${key}`;
-    if (currentBaselines[bk] === undefined) {
-      const val = parseFloat(data[key]);
-      if (!isNaN(val)) {
-        await sb.from('baselines').upsert({
-          station_code: currentProfile.station_code,
-          routine_type: routineType,
-          field_key: key,
-          baseline_value: val,
-          set_by: currentUser.id,
-        }, { onConflict: 'station_code,routine_type,field_key' });
-        currentBaselines[bk] = val;
-      }
-    }
-  }
+  if (toInsert.length === 0) return;
+
+  // Single batch upsert instead of one call per field
+  await sb.from('baselines').upsert(toInsert, { onConflict: 'station_code,routine_type,field_key' });
+
+  // Update local cache
+  toInsert.forEach(b => {
+    currentBaselines[`${routineType}:${b.field_key}`] = b.baseline_value;
+  });
 }
 
 function checkVariance(routineType, data) {
