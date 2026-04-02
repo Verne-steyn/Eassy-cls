@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EASSy CLS — Jointing Support</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface2: #f8f9fa;
+    --border: #d0dae4;
+    --border-strong: #b0bfcc;
+    --text: #1a2a3a;
+    --text-mid: #3a5068;
+    --muted: #6b7f94;
+    --amber: #d97706;
+    --amber-light: #f59e0b;
+    --amber-bg: #fffbeb;
+    --amber-border: #fde68a;
+    --green: #059669;
+    --green-light: #10b981;
+    --green-bg: #f0fdf4;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --teal: #0077a8;
+    --teal-bg: #f0f9ff;
+    --teal-light: #00b4d8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Barlow', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* Page header */
+  .page-header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    padding: 0 32px;
+    display: flex; align-items: center; gap: 16px;
+    height: 58px;
+  }
+
+  .back-btn {
+    display: flex; align-items: center; gap: 6px;
+    color: var(--muted); text-decoration: none;
+    font-size: 13px; font-weight: 500;
+    transition: color 0.2s;
+  }
+  .back-btn:hover { color: var(--amber); }
+
+  .header-sep { width: 1px; height: 24px; background: var(--border); }
+
+  .header-icon {
+    width: 32px; height: 32px;
+    background: var(--amber-bg);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+
+  .header-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 800; font-size: 18px;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--amber);
+  }
+
+  .header-spacer { flex: 1; }
+
+  .user-pill {
+    background: var(--amber-bg);
+    border: 1px solid var(--amber-border);
+    border-radius: 20px; padding: 4px 12px;
+    font-size: 12px; color: var(--amber); font-weight: 600;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 8px; border: none;
+    font-family: 'Barlow', sans-serif;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; text-decoration: none;
+  }
+  .btn-amber { background: var(--amber); color: white; }
+  .btn-amber:hover { background: #b45309; }
+  .btn-outline { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--amber); color: var(--amber); }
+  .btn-ghost { background: transparent; color: var(--muted); border: none; }
+  .btn-ghost:hover { color: var(--text); }
+  .btn-green { background: var(--green); color: white; }
+  .btn-green:hover { background: #047857; }
+  .btn-red { background: var(--red); color: white; }
+  .btn-red:hover { background: #b91c1c; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* Auth overlay */
+  .auth-overlay {
+    position: fixed; inset: 0; z-index: 200;
+    background: rgba(240,244,248,0.97);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px; padding: 40px;
+    width: 380px; max-width: 92vw;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.10);
+  }
+
+  .auth-logo { text-align: center; margin-bottom: 28px; }
+  .auth-logo .badge {
+    display: inline-block; width: 56px; height: 56px;
+    background: linear-gradient(135deg, #b45309, var(--amber-light));
+    border-radius: 14px; line-height: 56px;
+    font-size: 26px; margin-bottom: 12px;
+  }
+  .auth-logo h2 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px; font-weight: 800;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--amber);
+  }
+  .auth-logo p { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label {
+    display: block; font-size: 11px; font-weight: 600;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 6px;
+  }
+  .form-group input, .form-group select {
+    width: 100%; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; color: var(--text);
+    font-family: 'Barlow', sans-serif; font-size: 14px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--amber); }
+
+  .auth-msg { font-size: 12px; text-align: center; margin-top: 12px; min-height: 18px; color: var(--red); }
+  .auth-msg.success { color: var(--green); }
+
+  /* Content */
+  .content {
+    position: relative; z-index: 10;
+    max-width: 1400px; margin: 0 auto; padding: 32px;
+  }
+
+  /* Station bar */
+  .station-bar {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 20px;
+    margin-bottom: 24px; flex-wrap: wrap;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+
+  .station-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 2px; text-transform: uppercase; color: var(--muted);
+  }
+
+  .station-chips { display: flex; flex-wrap: wrap; gap: 8px; flex: 1; }
+
+  .station-chip {
+    padding: 6px 14px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text-mid); font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px; font-weight: 600; letter-spacing: 0.5px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .station-chip:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-bg); }
+  .station-chip.active { background: var(--amber); border-color: var(--amber); color: white; }
+
+  /* Stats */
+  .stats-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+  @media (max-width: 700px) { .stats-strip { grid-template-columns: repeat(2, 1fr); } .content { padding: 16px; } }
+
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px 20px;
+    position: relative; overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 12px 12px 0 0; }
+  .stat-card.amber::before { background: var(--amber); }
+  .stat-card.green::before { background: var(--green); }
+  .stat-card.red::before { background: var(--red); }
+
+  .stat-label { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+  .stat-value { font-family: 'Barlow Condensed', sans-serif; font-size: 32px; font-weight: 800; line-height: 1; }
+  .stat-card.amber .stat-value { color: var(--amber); }
+  .stat-card.green .stat-value { color: var(--green); }
+  .stat-card.red .stat-value { color: var(--red); }
+  .stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* Toolbar */
+  .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .toolbar-title { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text); flex: 1; }
+
+  /* Tools table panel */
+  .tools-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden; margin-bottom: 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+
+  .panel-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .panel-header h3 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--amber); flex: 1;
+  }
+  .panel-badge {
+    background: var(--amber-bg); border: 1px solid var(--amber-border);
+    border-radius: 20px; padding: 2px 10px;
+    font-size: 11px; font-weight: 600; color: var(--amber);
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+  thead th {
+    padding: 10px 14px; text-align: left;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--muted); background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 10px 14px; vertical-align: middle; }
+
+  .item-no { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 600; color: var(--muted); width: 40px; }
+
+  /* Tooltip-style description on hover — mimics Excel note */
+  .item-desc-wrap { position: relative; display: inline-block; }
+  .item-desc {
+    color: var(--text); font-weight: 500;
+    cursor: default;
+    border-bottom: 1px dashed var(--amber-light);
+  }
+  .item-desc-wrap .tooltip {
+    display: none;
+    position: absolute;
+    left: 0; top: calc(100% + 6px);
+    z-index: 50;
+    background: #fffde7;
+    border: 1px solid #f6c90e;
+    border-radius: 8px;
+    padding: 8px 12px;
+    min-width: 240px; max-width: 360px;
+    font-size: 12px; line-height: 1.5;
+    color: #5a4000;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    white-space: normal;
+    pointer-events: none;
+  }
+  .item-desc-wrap .tooltip::before {
+    content: '';
+    position: absolute;
+    top: -7px; left: 16px;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-bottom: 7px solid #f6c90e;
+  }
+  .item-desc-wrap .tooltip::after {
+    content: '';
+    position: absolute;
+    top: -6px; left: 17px;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-bottom: 6px solid #fffde7;
+  }
+  .item-desc-wrap:hover .tooltip { display: block; }
+
+  /* Note indicator dot (top-right corner) */
+  .item-desc-wrap .note-dot {
+    display: inline-block;
+    width: 0; height: 0;
+    border-style: solid;
+    border-width: 0 8px 8px 0;
+    border-color: transparent var(--amber) transparent transparent;
+    position: absolute;
+    top: -2px; right: -10px;
+    vertical-align: top;
+  }
+
+  /* Yes/No response in check mode */
+  .check-field { display: none; }
+  .check-mode .check-field { display: table-cell; }
+  .check-mode .view-field { display: none; }
+
+  .check-select {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 8px;
+    color: var(--text); font-size: 12px; outline: none;
+    cursor: pointer; min-width: 80px;
+  }
+  .check-select:focus { border-color: var(--amber); }
+  .check-select.yes { border-color: var(--green); color: var(--green); background: var(--green-bg); }
+  .check-select.no { border-color: var(--red); color: var(--red); background: var(--red-bg); }
+
+  .check-input {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 8px;
+    color: var(--text); font-size: 12px; outline: none; width: 100%; min-width: 120px;
+  }
+  .check-input:focus { border-color: var(--amber); }
+
+  /* Status badges */
+  .badge-yes { display: inline-block; background: var(--green-bg); color: var(--green); border: 1px solid var(--green-light); border-radius: 6px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+  .badge-no { display: inline-block; background: var(--red-bg); color: var(--red); border: 1px solid #fca5a5; border-radius: 6px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+  .badge-na { display: inline-block; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+
+  /* Sticky submit bar */
+  .sticky-submit-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 90;
+    background: var(--surface); border-top: 2px solid var(--amber);
+    padding: 14px 32px; display: none;
+    align-items: center; gap: 16px;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.10);
+  }
+  .sticky-submit-bar.active { display: flex; }
+  .sticky-bar-text { flex: 1; }
+  .sticky-bar-text strong { font-size: 14px; font-weight: 600; color: var(--amber); display: block; }
+  .sticky-bar-text span { font-size: 12px; color: var(--text-mid); }
+
+  /* Modals */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 300;
+    background: rgba(240,244,248,0.92);
+    display: none; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px; padding: 36px;
+    width: 520px; max-width: 92vw; max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  .modal-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px; font-weight: 800;
+    letter-spacing: 1px; text-transform: uppercase;
+    color: var(--amber); margin-bottom: 8px;
+  }
+  .modal p { font-size: 13px; color: var(--text-mid); margin-bottom: 20px; line-height: 1.5; }
+
+  .form-row { margin-bottom: 16px; }
+  .form-row label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .form-row input, .form-row select, .form-row textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; color: var(--text);
+    font-family: 'Barlow', sans-serif; font-size: 14px; outline: none;
+    transition: border-color 0.2s; resize: vertical;
+  }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--amber); }
+
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+
+  /* Alert */
+  .alert { border-radius: 10px; padding: 14px 18px; font-size: 13px; line-height: 1.5; }
+  .alert-info { background: var(--teal-bg); border: 1px solid #bae6fd; color: var(--teal); }
+  .alert-success { background: var(--green-bg); border: 1px solid #bbf7d0; color: var(--green); }
+
+  /* Comments section */
+  .comments-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+    margin-bottom: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .comments-panel h4 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 13px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .comments-panel textarea {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; color: var(--text);
+    font-family: 'Barlow', sans-serif; font-size: 13px; outline: none;
+    transition: border-color 0.2s; resize: vertical; min-height: 80px;
+  }
+  .comments-panel textarea:focus { border-color: var(--amber); }
+
+  /* History rows */
+  .history-row {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px; margin-bottom: 10px;
+    font-size: 12px; color: var(--text-mid);
+  }
+  .history-row strong { color: var(--text); }
+  .history-row .history-meta { color: var(--muted); font-size: 11px; margin-top: 4px; }
+
+  .body-padded { padding-bottom: 80px; }
+</style>
+</head>
+<body>
+
+<!-- Auth Overlay -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="badge">⚙️</div>
+      <h2>EASSy CLS Portal</h2>
+      <p>Jointing Support — Sign in to continue</p>
+    </div>
+    <div id="authForms">
+      <div id="loginForm">
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="loginEmail" placeholder="your@email.com" />
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" />
+        </div>
+        <button class="btn btn-amber" style="width:100%;justify-content:center;" onclick="doLogin()">Sign In</button>
+        <div class="auth-msg" id="loginMsg"></div>
+        <p style="text-align:center;margin-top:14px;font-size:12px;color:var(--muted);">
+          No account? <a href="#" onclick="showAuthForm(document.getElementById('registerForm'));showAuthForm2(document.getElementById('loginForm'),false)" style="color:var(--amber);">Register</a>
+        </p>
+      </div>
+      <div id="registerForm" style="display:none;">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="regName" placeholder="Your full name" />
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="regEmail" placeholder="your@email.com" />
+        </div>
+        <div class="form-group">
+          <label>Station</label>
+          <select id="regStation">
+            <option value="">— Select your station —</option>
+            <option value="MNZ">🇿🇦 MNZ — Mtunzini</option>
+            <option value="MPT">🇲🇿 MPT — Maputo</option>
+            <option value="DES">🇹🇿 DES — Dar es Salaam</option>
+            <option value="MBS">🇰🇪 MBS — Mombasa</option>
+            <option value="MGD">🇸🇴 MGD — Mogadishu</option>
+            <option value="DBT">🇩🇯 DBT — Djibouti</option>
+            <option value="PSD">🇸🇩 PSD — Port Sudan</option>
+            <option value="TLR">🇲🇬 TLR — Toliary</option>
+            <option value="MRN">🇰🇲 MRN — Moroni</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="regPassword" placeholder="Min 8 characters" />
+        </div>
+        <button class="btn btn-amber" style="width:100%;justify-content:center;" onclick="doRegister()">Create Account</button>
+        <div class="auth-msg" id="registerMsg"></div>
+        <p style="text-align:center;margin-top:14px;font-size:12px;color:var(--muted);">
+          Have an account? <a href="#" onclick="showAuthForm(document.getElementById('loginForm'));showAuthForm2(document.getElementById('registerForm'),false)" style="color:var(--amber);">Sign in</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Page header -->
+<header class="page-header">
+  <a href="home.html" class="back-btn">← Portal</a>
+  <div class="header-sep"></div>
+  <img src="data:image/png;base64,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" alt="EASSy" style="height:32px;object-fit:contain;">
+  <div class="header-sep"></div>
+  <div class="header-icon">🛠️</div>
+  <div class="header-title">Jointing Support</div>
+  <div class="header-spacer"></div>
+  <div class="login-area" id="loginArea" style="display:none;">
+    <span class="user-pill" id="userPill">—</span>
+    <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
+  </div>
+</header>
+
+<!-- Main content -->
+<div class="content body-padded" id="mainContent" style="display:none;">
+
+  <!-- Station selector -->
+  <div class="station-bar">
+    <span class="station-label">Station:</span>
+    <div class="station-chips" id="stationChips">
+      <button class="station-chip" onclick="selectStation('MNZ','🇿🇦')">🇿🇦 MNZ</button>
+      <button class="station-chip" onclick="selectStation('MPT','🇲🇿')">🇲🇿 MPT</button>
+      <button class="station-chip" onclick="selectStation('DES','🇹🇿')">🇹🇿 DES</button>
+      <button class="station-chip" onclick="selectStation('MBS','🇰🇪')">🇰🇪 MBS</button>
+      <button class="station-chip" onclick="selectStation('MGD','🇸🇴')">🇸🇴 MGD</button>
+      <button class="station-chip" onclick="selectStation('DBT','🇩🇯')">🇩🇯 DBT</button>
+      <button class="station-chip" onclick="selectStation('PSD','🇸🇩')">🇸🇩 PSD</button>
+      <button class="station-chip" onclick="selectStation('TLR','🇲🇬')">🇲🇬 TLR</button>
+      <button class="station-chip" onclick="selectStation('MRN','🇰🇲')">🇰🇲 MRN</button>
+    </div>
+  </div>
+
+  <!-- Content area -->
+  <div id="stationContent">
+    <div class="alert alert-info">
+      ℹ️ Select a station above to view and conduct jointing support checks.
+    </div>
+  </div>
+
+</div>
+
+<!-- Sticky submit bar -->
+<div class="sticky-submit-bar" id="stickySubmitBar">
+  <div class="sticky-bar-text">
+    <strong>Jointing Support Check in Progress</strong>
+    <span id="stickyProgress">Fill in all Yes/No fields then submit.</span>
+  </div>
+  <button class="btn btn-outline" onclick="cancelCheck()" style="border-color:var(--red);color:var(--red);">✕ Cancel</button>
+  <button class="btn btn-green" onclick="openSubmitModal()" style="padding:10px 28px;font-size:14px;">✅ Save &amp; Submit Check</button>
+</div>
+
+<!-- Submit confirmation modal -->
+<div class="modal-overlay" id="submitCheckModal">
+  <div class="modal">
+    <div class="modal-title">🛠️ Submit Jointing Support Check</div>
+    <p>
+      You are about to submit a jointing support check for <strong id="submitStationName" style="color:var(--amber);">—</strong>.
+      Please review before submitting — this record will be locked after 2 hours.
+    </p>
+    <div id="submitSummary" style="background:var(--surface2);border-radius:10px;padding:16px;margin-bottom:20px;font-size:13px;"></div>
+    <div class="form-row">
+      <label>Comments / Recommendations (optional)</label>
+      <textarea id="submitRemarks" rows="3" placeholder="Any comments or recommendations regarding jointing support readiness..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeSubmitModal()">Cancel</button>
+      <button class="btn btn-green" onclick="finalSubmit()">Confirm &amp; Submit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ───
+const SUPABASE_URL = 'https://wpblebjftxcdfrwwguti.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmxlYmpmdHhjZGZyd3dndXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Njg3NTAsImV4cCI6MjA4OTU0NDc1MH0.oaBljcLPFa3JPLp_e-2FgCcylwAOPAdHpkzGctOwfo0';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ─── ADMIN LIST ───
+const ADMIN_WHITELIST = {
+  'MRN': 'assad.comorescables@outlook.com',
+  'TLR': 'johary.ramboa@telma.mg',
+  'DBT': 'farah.abdi@djibtel.dj',
+  'PSD': 'abdelhameeda@sudatel.sd',
+  'MGD': 'girde@dalkomsomalia.com',
+  'MBS': 'totieno@telkom.co.ke',
+  'MNZ': 'waynee@openserve.co.za',
+  'MPT': 'nhiuane@tmcel.mz',
+  'DES': 'omar.said@yas.co.tz',
+  'SUPER': 'verne.steyn@wiocc.net'
+};
+
+// ─── JOINTING SUPPORT ITEMS ───
+const JOINTING_ITEMS = [
+  { id: 1, action: 'Gazebo tent, with sides',           description: 'A tent type structure that can be assembled on site. This is used to protect against rain, Sun, wind and dust' },
+  { id: 2, action: 'Generator ≥3kW',                   description: 'Petrol generator that can be used to provide power for lights and power tools' },
+  { id: 3, action: 'Electrical Extension cords >10m',  description: 'Standard 220Vac electrical cord which connects the generator to a power tool or light' },
+  { id: 4, action: 'Lights',                            description: '220Vac lights that can be used to perform jointing operations at night or for use in a jointing manhole' },
+  { id: 5, action: 'Water pump',                        description: 'A 12Vdc or 220Vac water pump with an extraction pipe used to pump water out of manholes' },
+  { id: 6, action: 'Spade',                             description: 'Standard size spade used to clear the area around the manhole' },
+  { id: 7, action: 'Manhole barriers & Cones',          description: 'Traffic cones to prevent pedestrians and motor traffic from becoming a hazard in the working area' },
+  { id: 8, action: 'Ladder suitable',                   description: 'Extendable ladder which may be used to enter and exit a manhole' },
+  { id: 9, action: 'Work benches x 2',                 description: 'Workbenches which are used to clamp/hold the cable and joint during jointing operations' },
+  { id: 10, action: 'Work table',                       description: 'A flat table to place items such as tools and test equipment on' },
+  { id: 11, action: 'Chairs x 2',                       description: 'Chairs which will enable jointing operations to be performed' },
+  { id: 12, action: 'Safety tripod',                    description: 'Approved Safety Tripod used to extract a human from a manhole during emergencies' },
+  { id: 13, action: 'Manhole keys',                     description: 'Manhole keys which are applicable to the manhole type' },
+];
+
+// ─── STATE ───
+let currentUser = null;
+let userProfile = null;
+let currentStation = null;
+let checkMode = false;
+let checkData = {};
+let isAdmin = false;
+let isSuperAdmin = false;
+
+// ─── AUTH ───
+function showAuthForm(el) { el.style.display = 'block'; }
+function showAuthForm2(el, show) { el.style.display = show ? 'block' : 'none'; }
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  const msg = document.getElementById('loginMsg');
+  msg.textContent = 'Signing in…'; msg.className = 'auth-msg';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if (error) { msg.textContent = error.message; return; }
+  msg.textContent = '';
+}
+
+async function doRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const station = document.getElementById('regStation').value;
+  const pw = document.getElementById('regPassword').value;
+  const msg = document.getElementById('registerMsg');
+  if (!name || !email || !station || !pw) { msg.textContent = 'All fields required.'; return; }
+  msg.textContent = 'Creating account…'; msg.className = 'auth-msg';
+  const { data, error } = await sb.auth.signUp({ email, password: pw, options: { data: { full_name: name, station_code: station } } });
+  if (error) { msg.textContent = error.message; return; }
+  msg.textContent = 'Check your email to confirm your account!'; msg.className = 'auth-msg success';
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  location.reload();
+}
+
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    await loadProfile();
+    showApp();
+  }
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (session && !currentUser) {
+      currentUser = session.user;
+      await loadProfile();
+      showApp();
+    }
+  });
+}
+
+async function loadProfile() {
+  const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  userProfile = data;
+  isSuperAdmin = currentUser.email === ADMIN_WHITELIST['SUPER'];
+  isAdmin = isSuperAdmin || Object.values(ADMIN_WHITELIST).includes(currentUser.email);
+}
+
+function showApp() {
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('loginArea').style.display = 'flex';
+  const displayName = userProfile?.full_name || currentUser.email;
+  document.getElementById('userPill').textContent = displayName;
+  if (userProfile?.station_code && !isSuperAdmin) {
+    selectStation(userProfile.station_code);
+  }
+}
+
+// ─── STATION ───
+function selectStation(code) {
+  currentStation = code;
+  document.querySelectorAll('.station-chip').forEach(c => {
+    c.classList.toggle('active', c.textContent.includes(code));
+  });
+  renderStationContent();
+}
+
+// ─── RENDER ───
+async function renderStationContent() {
+  const container = document.getElementById('stationContent');
+  container.innerHTML = '<div class="alert alert-info">⏳ Loading…</div>';
+
+  // Load recent checks
+  const { data: recentChecks } = await sb.from('jointing_checks')
+    .select('*')
+    .eq('station_code', currentStation)
+    .order('check_date', { ascending: false })
+    .limit(5);
+
+  const lastCheck = recentChecks && recentChecks.length > 0 ? recentChecks[0] : null;
+  const stationNames = {MNZ:'Mtunzini',MPT:'Maputo',DES:'Dar es Salaam',MBS:'Mombasa',MGD:'Mogadishu',DBT:'Djibouti',PSD:'Port Sudan',TLR:'Toliary',MRN:'Moroni'};
+  const flags = {MNZ:'🇿🇦',MPT:'🇲🇿',DES:'🇹🇿',MBS:'🇰🇪',MGD:'🇸🇴',DBT:'🇩🇯',PSD:'🇸🇩',TLR:'🇲🇬',MRN:'🇰🇲'};
+
+  const total = JOINTING_ITEMS.length;
+  const lastOk = lastCheck ? lastCheck.items_ok : '—';
+  const lastMissing = lastCheck ? (total - lastCheck.items_ok) : '—';
+
+  // Determine if user can check this station
+  const canCheck = isSuperAdmin || currentUser.email === ADMIN_WHITELIST[currentStation];
+
+  // Build table rows
+  let tbody = '';
+  JOINTING_ITEMS.forEach(item => {
+    const cd = checkData[item.id] || {};
+    const val = cd.present || '';
+    const cls = val === 'Yes' ? 'yes' : val === 'No' ? 'no' : '';
+
+    let viewCell = '<td class="view-field"><span class="badge-na">—</span></td>';
+    if (lastCheck && lastCheck.check_details) {
+      const detail = lastCheck.check_details.find(d => d.id === item.id);
+      if (detail) {
+        viewCell = `<td class="view-field">${detail.present === 'Yes' ? '<span class="badge-yes">✓ Yes</span>' : detail.present === 'No' ? '<span class="badge-no">✗ No</span>' : '<span class="badge-na">—</span>'}</td>`;
+      }
+    }
+
+    tbody += `
+      <tr>
+        <td class="item-no">${item.id}</td>
+        <td>
+          <div class="item-desc-wrap">
+            <span class="item-desc">${item.action}</span>
+            <span class="note-dot"></span>
+            <div class="tooltip">📋 ${item.description}</div>
+          </div>
+        </td>
+        ${viewCell}
+        <td class="check-field">
+          <select class="check-select ${cls}" onchange="setCheck(${item.id},'present',this.value);styleSelect(this)">
+            <option value="">— Select —</option>
+            <option value="Yes" ${val==='Yes'?'selected':''}>Yes</option>
+            <option value="No" ${val==='No'?'selected':''}>No</option>
+          </select>
+        </td>
+        <td class="check-field">
+          <input class="check-input" type="text" placeholder="Notes…" value="${cd.notes||''}" oninput="setCheck(${item.id},'notes',this.value)" />
+        </td>
+      </tr>`;
+  });
+
+  const tableCheckHeader = checkMode ? '<th class="check-field">Present</th><th class="check-field">Notes</th>' : '';
+  const tableViewHeader = !checkMode ? '<th class="view-field">Last Check</th>' : '';
+
+  container.innerHTML = `
+    <!-- Stats -->
+    <div class="stats-strip">
+      <div class="stat-card amber">
+        <div class="stat-label">Total Items</div>
+        <div class="stat-value">${total}</div>
+        <div class="stat-sub">Jointing support checklist</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Last Check — Present</div>
+        <div class="stat-value">${lastOk}</div>
+        <div class="stat-sub">${lastCheck ? 'of ' + total + ' items' : 'No check recorded yet'}</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Last Check — Missing</div>
+        <div class="stat-value">${lastMissing}</div>
+        <div class="stat-sub">${lastCheck ? new Date(lastCheck.check_date).toLocaleDateString() : '—'}</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-title">${flags[currentStation]||''} ${currentStation} — ${stationNames[currentStation]||''} — Jointing Support</div>
+      ${canCheck && !checkMode ? `<button class="btn btn-amber" onclick="startCheck()">🔍 Start Check</button>` : ''}
+      ${lastCheck ? `<button class="btn btn-outline btn-sm" onclick="exportCSV()">⬇ Export CSV</button>` : ''}
+    </div>
+
+    <!-- Checklist table -->
+    <div class="tools-panel ${checkMode ? 'check-mode' : ''}">
+      <div class="panel-header">
+        <h3>🛠️ Jointing Support Checklist</h3>
+        <span class="panel-badge">${total} items</span>
+        ${checkMode ? '<span style="font-size:11px;color:var(--amber);font-weight:600;">⚡ CHECK MODE ACTIVE — hover items for description</span>' : '<span style="font-size:11px;color:var(--muted);">Hover an item name to see its description</span>'}
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px;">#</th>
+            <th>Requirement</th>
+            ${tableViewHeader}
+            ${tableCheckHeader}
+          </tr>
+        </thead>
+        <tbody id="checklistBody">${tbody}</tbody>
+      </table>
+    </div>
+
+    <!-- Check history -->
+    ${recentChecks && recentChecks.length > 0 ? `
+    <div class="comments-panel">
+      <h4>📋 Recent Check History</h4>
+      ${recentChecks.map(c => {
+        const d = new Date(c.check_date);
+        const missing = total - c.items_ok;
+        return `<div class="history-row">
+          <strong>${d.toLocaleDateString('en-GB', {weekday:'short',day:'numeric',month:'short',year:'numeric'})} — ${d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</strong>
+          &nbsp;·&nbsp; ${c.items_ok}/${total} present
+          ${missing > 0 ? `&nbsp;<span style="color:var(--red);">· ${missing} missing/not present</span>` : `&nbsp;<span style="color:var(--green);">· All items present ✓</span>`}
+          ${c.remarks ? `<div class="history-meta">💬 ${c.remarks}</div>` : ''}
+          <div class="history-meta">Checked by: ${c.checked_by}</div>
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+  `;
+}
+
+// ─── CHECK LOGIC ───
+function styleSelect(sel) {
+  sel.classList.remove('yes','no');
+  if (sel.value === 'Yes') sel.classList.add('yes');
+  if (sel.value === 'No') sel.classList.add('no');
+  updateProgress();
+}
+
+function updateProgress() {
+  const filled = Object.values(checkData).filter(d => d.present).length;
+  document.getElementById('stickyProgress').textContent = `${filled}/${JOINTING_ITEMS.length} items completed.`;
+}
+
+function setCheck(itemId, field, value) {
+  if (!checkData[itemId]) checkData[itemId] = {};
+  checkData[itemId][field] = value;
+  updateProgress();
+}
+
+function startCheck() {
+  checkMode = true;
+  checkData = {};
+  JOINTING_ITEMS.forEach(item => { checkData[item.id] = { present: '', notes: '' }; });
+  renderStationContent();
+  document.getElementById('stickySubmitBar').classList.add('active');
+}
+
+function cancelCheck() {
+  checkMode = false;
+  checkData = {};
+  document.getElementById('stickySubmitBar').classList.remove('active');
+  renderStationContent();
+}
+
+function openSubmitModal() {
+  const stationNames = {MNZ:'Mtunzini',MPT:'Maputo',DES:'Dar es Salaam',MBS:'Mombasa',MGD:'Mogadishu',DBT:'Djibouti',PSD:'Port Sudan',TLR:'Toliary',MRN:'Moroni'};
+  document.getElementById('submitStationName').textContent = `${currentStation} — ${stationNames[currentStation]}`;
+
+  let yesCount = 0, noCount = 0, blank = 0;
+  JOINTING_ITEMS.forEach(item => {
+    const v = (checkData[item.id]||{}).present;
+    if (v === 'Yes') yesCount++;
+    else if (v === 'No') noCount++;
+    else blank++;
+  });
+
+  document.getElementById('submitSummary').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div>📦 <strong>Total items:</strong> ${JOINTING_ITEMS.length}</div>
+      <div style="color:var(--green);">✅ <strong>Present (Yes):</strong> ${yesCount}</div>
+      <div style="color:var(--red);">✗ <strong>Not present (No):</strong> ${noCount}</div>
+      <div style="color:var(--muted);">⬜ <strong>Not answered:</strong> ${blank}</div>
+    </div>`;
+
+  document.getElementById('submitCheckModal').classList.add('open');
+}
+
+function closeSubmitModal() {
+  document.getElementById('submitCheckModal').classList.remove('open');
+}
+
+async function finalSubmit() {
+  const remarks = document.getElementById('submitRemarks').value;
+  let yesCount = 0;
+  JOINTING_ITEMS.forEach(item => {
+    if ((checkData[item.id]||{}).present === 'Yes') yesCount++;
+  });
+
+  const details = JOINTING_ITEMS.map(item => ({
+    id: item.id,
+    action: item.action,
+    present: (checkData[item.id]||{}).present || '',
+    notes: (checkData[item.id]||{}).notes || ''
+  }));
+
+  const { error } = await sb.from('jointing_checks').insert({
+    station_code: currentStation,
+    check_date: new Date().toISOString(),
+    checked_by: userProfile?.full_name || currentUser.email,
+    items_ok: yesCount,
+    items_total: JOINTING_ITEMS.length,
+    remarks,
+    check_details: details
+  });
+
+  if (error) { alert('Error saving check: ' + error.message); return; }
+
+  closeSubmitModal();
+  checkMode = false;
+  checkData = {};
+  document.getElementById('stickySubmitBar').classList.remove('active');
+  await renderStationContent();
+}
+
+// ─── EXPORT ───
+async function exportCSV() {
+  const { data: lastCheck } = await sb.from('jointing_checks')
+    .select('*')
+    .eq('station_code', currentStation)
+    .order('check_date', { ascending: false })
+    .limit(1)
+    .single();
+
+  const now = new Date();
+  const rows = [['#', 'Requirement', 'Present', 'Notes', 'Description']];
+  JOINTING_ITEMS.forEach(item => {
+    const detail = lastCheck?.check_details?.find(d => d.id === item.id);
+    rows.push([item.id, item.action, detail?.present||'', detail?.notes||'', item.description]);
+  });
+  if (lastCheck?.remarks) rows.push(['', 'Comments/Recommendations', lastCheck.remarks, '', '']);
+
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `EASSy_Jointing_Support_${currentStation}_${now.toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── INIT ───
+init();
+</script>
+</body>
+</html>
