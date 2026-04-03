@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EASSy CLS — Compliance Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface2: #f8f9fa;
+    --border: #d0dae4;
+    --text: #1a2a3a;
+    --text-mid: #3a5068;
+    --muted: #6b7f94;
+    --amber: #d97706;
+    --amber-light: #f59e0b;
+    --amber-bg: #fffbeb;
+    --amber-border: #fde68a;
+    --green: #059669;
+    --green-bg: #f0fdf4;
+    --green-light: #10b981;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --red-light: #ef4444;
+    --teal: #0077a8;
+    --teal-bg: #f0f9ff;
+    --charcoal: #1e293b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── HEADER ── */
+  .page-header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    padding: 0 32px; display: flex; align-items: center; gap: 16px; height: 58px;
+  }
+  .back-btn { display: flex; align-items: center; gap: 6px; color: var(--muted); text-decoration: none; font-size: 13px; font-weight: 500; transition: color 0.2s; }
+  .back-btn:hover { color: var(--charcoal); }
+  .header-sep { width: 1px; height: 24px; background: var(--border); }
+  .header-icon { width: 32px; height: 32px; background: var(--charcoal); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .header-title { font-family: 'Barlow Condensed', sans-serif; font-weight: 800; font-size: 18px; letter-spacing: 1px; text-transform: uppercase; color: var(--charcoal); }
+  .header-spacer { flex: 1; }
+  .user-pill { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--text-mid); font-weight: 600; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: none; font-family: 'Barlow', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; }
+  .btn-outline { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--charcoal); color: var(--charcoal); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+  .btn-charcoal { background: var(--charcoal); color: white; }
+  .btn-charcoal:hover { background: #0f172a; }
+
+  /* ── AUTH ── */
+  .auth-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(240,244,248,0.97); display: flex; align-items: center; justify-content: center; }
+  .auth-card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 40px; width: 380px; max-width: 92vw; box-shadow: 0 8px 32px rgba(0,0,0,0.10); }
+  .auth-logo { text-align: center; margin-bottom: 28px; }
+  .auth-logo h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--charcoal); }
+  .auth-logo p { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .form-group input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-family: 'Barlow', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .form-group input:focus { border-color: var(--charcoal); }
+  .auth-msg { font-size: 12px; text-align: center; margin-top: 12px; min-height: 18px; color: var(--red); }
+
+  /* ── CONTENT ── */
+  .content { max-width: 1400px; margin: 0 auto; padding: 28px 32px; }
+
+  /* ── SUMMARY STRIP ── */
+  .summary-strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
+  @media (max-width: 900px) { .summary-strip { grid-template-columns: repeat(3, 1fr); } }
+
+  .summary-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px;
+    position: relative; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  }
+  .summary-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 12px 12px 0 0; }
+  .summary-card.green::before { background: var(--green); }
+  .summary-card.amber::before { background: var(--amber); }
+  .summary-card.red::before { background: var(--red); }
+  .summary-card.teal::before { background: var(--teal); }
+  .summary-card.charcoal::before { background: var(--charcoal); }
+  .summary-label { font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .summary-value { font-family: 'Barlow Condensed', sans-serif; font-size: 30px; font-weight: 800; line-height: 1; }
+  .summary-card.green .summary-value { color: var(--green); }
+  .summary-card.amber .summary-value { color: var(--amber); }
+  .summary-card.red .summary-value { color: var(--red); }
+  .summary-card.teal .summary-value { color: var(--teal); }
+  .summary-card.charcoal .summary-value { color: var(--charcoal); }
+  .summary-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* ── SECTION HEADERS ── */
+  .section-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-mid); flex: 1; }
+  .section-badge { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600; color: var(--muted); }
+
+  /* ── ALERT BANNER ── */
+  .alert-banner {
+    background: var(--red-bg); border: 1px solid #fca5a5; border-radius: 12px;
+    padding: 14px 18px; margin-bottom: 24px; display: none;
+  }
+  .alert-banner.active { display: block; }
+  .alert-banner-title { font-weight: 700; font-size: 13px; color: var(--red); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .alert-item { font-size: 12px; color: #7f1d1d; padding: 4px 0; border-bottom: 1px solid #fecaca; display: flex; align-items: center; gap: 8px; }
+  .alert-item:last-child { border-bottom: none; }
+
+  /* ── STATION HEATMAP ── */
+  .heatmap-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 10px; margin-bottom: 24px; }
+  @media (max-width: 900px) { .heatmap-grid { grid-template-columns: repeat(3, 1fr); } }
+
+  .heat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 14px 10px; text-align: center; cursor: pointer;
+    transition: all 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .heat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.10); }
+  .heat-card.status-green { border-color: #bbf7d0; background: #f0fdf4; }
+  .heat-card.status-amber { border-color: var(--amber-border); background: var(--amber-bg); }
+  .heat-card.status-red { border-color: #fca5a5; background: var(--red-bg); }
+  .heat-card.status-grey { border-color: var(--border); background: var(--surface2); opacity: 0.7; }
+  .heat-flag { font-size: 22px; line-height: 1; margin-bottom: 4px; }
+  .heat-code { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; margin-bottom: 2px; }
+  .heat-card.status-green .heat-code { color: var(--green); }
+  .heat-card.status-amber .heat-code { color: var(--amber); }
+  .heat-card.status-red .heat-code { color: var(--red); }
+  .heat-card.status-grey .heat-code { color: var(--muted); }
+  .heat-pct { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 800; line-height: 1; }
+  .heat-card.status-green .heat-pct { color: var(--green); }
+  .heat-card.status-amber .heat-pct { color: var(--amber); }
+  .heat-card.status-red .heat-pct { color: var(--red); }
+  .heat-card.status-grey .heat-pct { color: var(--muted); }
+  .heat-label { font-size: 9px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* ── ROUTINE TABLE ── */
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+  .panel-head { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  .panel-head h3 { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--charcoal); flex: 1; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead th { padding: 9px 14px; text-align: left; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); background: var(--surface2); border-bottom: 1px solid var(--border); white-space: nowrap; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody tr:last-child { border-bottom: none; }
+  td { padding: 9px 14px; vertical-align: middle; }
+
+  .pill { display: inline-block; border-radius: 20px; padding: 2px 10px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; }
+  .pill-green { background: var(--green-bg); color: var(--green); border: 1px solid #bbf7d0; }
+  .pill-amber { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+  .pill-red { background: var(--red-bg); color: var(--red); border: 1px solid #fca5a5; }
+  .pill-grey { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+  .pill-blue { background: var(--teal-bg); color: var(--teal); border: 1px solid #bae6fd; }
+
+  /* ── PFE DEVIATION TABLE ── */
+  .deviation-badge { display: inline-flex; align-items: center; gap:4px; border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 600; }
+  .deviation-ok { background: var(--green-bg); color: var(--green); }
+  .deviation-warn { background: var(--amber-bg); color: var(--amber); }
+  .deviation-alert { background: var(--red-bg); color: var(--red); }
+  .deviation-na { background: var(--surface2); color: var(--muted); }
+
+  /* ── TWO-COL LAYOUT ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* ── CHART WRAPPER ── */
+  .chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+  .chart-title { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-mid); margin-bottom: 14px; }
+
+  /* ── PERIOD SELECTOR ── */
+  .period-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
+  .period-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+  .period-btn { padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--text-mid); font-family: 'Barlow', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .period-btn.active { background: var(--charcoal); border-color: var(--charcoal); color: white; }
+  .period-btn:hover:not(.active) { border-color: var(--charcoal); color: var(--charcoal); }
+
+  /* ── STATION DETAIL MODAL ── */
+  .modal-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(28,43,58,0.5); display: none; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 32px; width: 700px; max-width: 95vw; max-height: 85vh; overflow-y: auto; box-shadow: 0 12px 48px rgba(0,0,0,0.15); }
+  .modal-title { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: var(--charcoal); margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .modal-close { margin-left: auto; cursor: pointer; color: var(--muted); font-size: 18px; line-height: 1; background: none; border: none; padding: 4px; }
+  .modal-close:hover { color: var(--text); }
+
+  /* ── ROUTINE STATUS GRID IN MODAL ── */
+  .routine-status-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+  .routine-status-item { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .routine-status-name { font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .routine-status-val { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; }
+
+  .spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--charcoal); border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-state { text-align: center; padding: 40px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- Auth Overlay -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div style="font-size:32px;margin-bottom:12px;">📊</div>
+      <h2>Compliance Dashboard</h2>
+      <p>EASSy CLS Operations Portal — Sign in to continue</p>
+    </div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="loginEmail" placeholder="your@email.com" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-charcoal" style="width:100%;justify-content:center;" onclick="doLogin()">Sign In</button>
+    <div class="auth-msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<!-- Page Header -->
+<header class="page-header">
+  <a href="index.html" class="back-btn">← Portal</a>
+  <div class="header-sep"></div>
+  <img src="data:image/png;base64,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" alt="EASSy" style="height:30px;object-fit:contain;">
+  <div class="header-sep"></div>
+  <div class="header-icon">📊</div>
+  <div class="header-title">Compliance Dashboard</div>
+  <div class="header-spacer"></div>
+  <div id="lastRefresh" style="font-size:11px;color:var(--muted);margin-right:8px;"></div>
+  <button class="btn btn-outline btn-sm" onclick="loadDashboard()">↻ Refresh</button>
+  <div class="header-sep"></div>
+  <div id="loginArea" style="display:none;display:flex;align-items:center;gap:8px;">
+    <span class="user-pill" id="userPill">—</span>
+    <button class="btn btn-outline btn-sm" onclick="doLogout()">Sign Out</button>
+  </div>
+</header>
+
+<!-- Main content -->
+<div class="content" id="mainContent" style="display:none;">
+
+  <!-- Period selector -->
+  <div class="period-bar">
+    <span class="period-label">Viewing:</span>
+    <button class="period-btn active" id="btn-today" onclick="setPeriod('today')">Today</button>
+    <button class="period-btn" id="btn-week" onclick="setPeriod('week')">This Week</button>
+    <button class="period-btn" id="btn-month" onclick="setPeriod('month')">This Month</button>
+    <button class="period-btn" id="btn-6month" onclick="setPeriod('6month')">6-Monthly</button>
+  </div>
+
+  <!-- PFE Alert Banner -->
+  <div class="alert-banner" id="pfeAlertBanner">
+    <div class="alert-banner-title">⚠️ PFE Baseline Deviations Detected</div>
+    <div id="pfeAlertList"></div>
+  </div>
+
+  <!-- Summary strip -->
+  <div class="summary-strip">
+    <div class="summary-card green">
+      <div class="summary-label">Daily Compliance</div>
+      <div class="summary-value" id="stat-daily">—</div>
+      <div class="summary-sub" id="stat-daily-sub">Today's daily routines</div>
+    </div>
+    <div class="summary-card teal">
+      <div class="summary-label">Stations Reporting</div>
+      <div class="summary-value" id="stat-stations">—</div>
+      <div class="summary-sub" id="stat-stations-sub">of working stations today</div>
+    </div>
+    <div class="summary-card amber">
+      <div class="summary-label">Overdue Alerts</div>
+      <div class="summary-value" id="stat-overdue">—</div>
+      <div class="summary-sub">Routines past deadline</div>
+    </div>
+    <div class="summary-card red">
+      <div class="summary-label">PFE Deviations</div>
+      <div class="summary-value" id="stat-pfe">—</div>
+      <div class="summary-sub">&gt;0.5% from baseline</div>
+    </div>
+    <div class="summary-card charcoal">
+      <div class="summary-label">Period Completion</div>
+      <div class="summary-value" id="stat-period">—</div>
+      <div class="summary-sub" id="stat-period-sub">Current period</div>
+    </div>
+  </div>
+
+  <!-- Station heatmap -->
+  <div class="section-header">
+    <span class="section-title">📍 Station Status — <span id="heatmapPeriodLabel">Today</span></span>
+    <span class="section-badge" id="heatmapBadge">All 9 Stations</span>
+  </div>
+  <div class="heatmap-grid" id="heatmapGrid">
+    <div class="loading-state" style="grid-column:1/-1;">⏳ Loading stations…</div>
+  </div>
+
+  <!-- Two-col: Routine compliance table + Chart -->
+  <div class="two-col">
+
+    <!-- Routine completion by type -->
+    <div class="panel">
+      <div class="panel-head">
+        <h3>📋 Routine Completion by Type</h3>
+        <span class="section-badge" id="routineTablePeriod">—</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Routine</th>
+            <th>Frequency</th>
+            <th>Submitted</th>
+            <th>Expected</th>
+            <th>Rate</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="routineTableBody">
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Compliance chart -->
+    <div class="chart-wrap">
+      <div class="chart-title">📈 Daily Compliance Trend — Last 30 Days</div>
+      <canvas id="complianceChart" style="max-height:280px;"></canvas>
+    </div>
+
+  </div>
+
+  <!-- PFE Deviation table -->
+  <div class="section-header">
+    <span class="section-title">⚡ PFE Baseline Deviation Monitor</span>
+    <span class="section-badge">Last 7 days · &gt;0.5% deviation flagged</span>
+  </div>
+  <div class="panel" style="margin-bottom:24px;">
+    <div class="panel-head">
+      <h3>⚡ PFE Readings vs Baseline</h3>
+      <span class="section-badge" id="pfeDeviationBadge">All Stations</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Station</th>
+          <th>Date</th>
+          <th>PFE V PU1</th>
+          <th>PFE V PU2</th>
+          <th>PFE I PU1</th>
+          <th>PFE I PU2</th>
+          <th>Voltage Dev.</th>
+          <th>Current Dev.</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="pfeTableBody">
+        <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Per-station detail table -->
+  <div class="section-header">
+    <span class="section-title">🗂 Per-Station Routine Detail</span>
+    <span class="section-badge" id="detailPeriodBadge">—</span>
+  </div>
+  <div class="panel">
+    <div class="panel-head">
+      <h3>📊 All Stations — Submission Detail</h3>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Station</th>
+          <th>Country</th>
+          <th>Daily Fac.</th>
+          <th>Daily Equip.</th>
+          <th>Weekly</th>
+          <th>Monthly</th>
+          <th>Monthly PFE</th>
+          <th>6-Monthly</th>
+          <th>Overall</th>
+        </tr>
+      </thead>
+      <tbody id="detailTableBody">
+        <tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- Station detail modal -->
+<div class="modal-overlay" id="stationModal">
+  <div class="modal">
+    <div class="modal-title">
+      <span id="modalFlag">—</span>
+      <span id="modalTitle">Station Detail</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div id="modalContent">Loading…</div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──
+const SUPABASE_URL = 'https://wpblebjftxcdfrwwguti.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmxlYmpmdHhjZGZyd3dndXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Njg3NTAsImV4cCI6MjA4OTU0NDc1MH0.oaBljcLPFa3JPLp_e-2FgCcylwAOPAdHpkzGctOwfo0';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const STATIONS = [
+  { code:'MNZ', name:'Mtunzini',     country:'South Africa', flag:'🇿🇦', workDays:[1,2,3,4,5] },
+  { code:'MPT', name:'Maputo',       country:'Mozambique',   flag:'🇲🇿', workDays:[1,2,3,4,5] },
+  { code:'DES', name:'Dar es Salaam',country:'Tanzania',     flag:'🇹🇿', workDays:[1,2,3,4,5] },
+  { code:'MBS', name:'Mombasa',      country:'Kenya',        flag:'🇰🇪', workDays:[1,2,3,4,5] },
+  { code:'MGD', name:'Mogadishu',    country:'Somalia',      flag:'🇸🇴', workDays:[0,1,2,3,4] },
+  { code:'DBT', name:'Djibouti',     country:'Djibouti',     flag:'🇩🇯', workDays:[0,1,2,3,4] },
+  { code:'PSD', name:'Port Sudan',   country:'Sudan',        flag:'🇸🇩', workDays:[0,1,2,3,4] },
+  { code:'TLR', name:'Toliary',      country:'Madagascar',   flag:'🇲🇬', workDays:[1,2,3,4,5] },
+  { code:'MRN', name:'Moroni',       country:'Comoros',      flag:'🇰🇲', workDays:[1,2,3,4,5] },
+];
+
+const ROUTINE_TYPES = [
+  { key: 'daily_facility',  label: 'Daily Facility',  frequency: 'daily'      },
+  { key: 'daily_equipment', label: 'Daily Equipment', frequency: 'daily'      },
+  { key: 'weekly',          label: 'Weekly',          frequency: 'weekly'     },
+  { key: 'monthly',         label: 'Monthly',         frequency: 'monthly'    },
+  { key: 'monthly_pfe',     label: 'Monthly PFE',     frequency: 'monthly'    },
+  { key: 'six_monthly',     label: '6-Monthly',       frequency: 'six_monthly'},
+];
+
+let currentUser = null;
+let currentPeriod = 'today';
+let compChart = null;
+
+// ── PERIOD KEY HELPERS ──
+function getPeriodKey(frequency, date) {
+  const d = date || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  if (frequency === 'daily')      return `${y}-${m}-${day}`;
+  if (frequency === 'weekly') {
+    const oneJan = new Date(y,0,1);
+    const wk = Math.ceil(((d - oneJan)/86400000 + oneJan.getDay()+1)/7);
+    return `${y}-W${String(wk).padStart(2,'0')}`;
+  }
+  if (frequency === 'monthly')     return `${y}-${m}`;
+  if (frequency === 'six_monthly') return `${y}-${d.getMonth() < 6 ? 'H1' : 'H2'}`;
+  return `${y}-${m}-${day}`;
+}
+
+function isWorkDay(station, date) {
+  const d = date || new Date();
+  return station.workDays.includes(d.getDay());
+}
+
+function workDaysInMonth(station, year, monthNum) {
+  const daysInMonth = new Date(year, monthNum, 0).getDate();
+  let count = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dow = new Date(year, monthNum - 1, d).getDay();
+    if (station.workDays.includes(dow)) count++;
+  }
+  return count;
+}
+
+function workDaysInWeek(station, year, weekNum) {
+  // Count working days in the ISO week
+  const startOfYear = new Date(year, 0, 1);
+  const weekStart = new Date(startOfYear.getTime() + (weekNum - 1) * 7 * 86400000);
+  let count = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart.getTime() + i * 86400000);
+    if (station.workDays.includes(d.getDay())) count++;
+  }
+  return count;
+}
+
+// ── AUTH ──
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  const msg = document.getElementById('loginMsg');
+  msg.textContent = 'Signing in…';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+  if (error) { msg.textContent = error.message; return; }
+  msg.textContent = '';
+}
+
+async function doLogout() { await sb.auth.signOut(); location.reload(); }
+
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) { currentUser = session.user; showApp(); }
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (session && !currentUser) { currentUser = session.user; showApp(); }
+  });
+}
+
+function showApp() {
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('loginArea').style.display = 'flex';
+  document.getElementById('userPill').textContent = currentUser.email;
+  loadDashboard();
+}
+
+// ── PERIOD CONTROL ──
+function setPeriod(p) {
+  currentPeriod = p;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('btn-' + p).classList.add('active');
+  loadDashboard();
+}
+
+// ── MAIN LOAD ──
+async function loadDashboard() {
+  document.getElementById('lastRefresh').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+
+  const now = new Date();
+  const today = getPeriodKey('daily');
+  const thisWeek = getPeriodKey('weekly');
+  const thisMonth = getPeriodKey('monthly');
+  const thisSixMonth = getPeriodKey('six_monthly');
+
+  // Determine what period keys to query
+  let periodLabel = 'Today';
+  let periodKeys = [];
+  let routinePeriodLabel = today;
+
+  if (currentPeriod === 'today') {
+    periodKeys = [today];
+    periodLabel = 'Today';
+    routinePeriodLabel = today;
+  } else if (currentPeriod === 'week') {
+    periodKeys = [thisWeek];
+    periodLabel = 'This Week (' + thisWeek + ')';
+    routinePeriodLabel = thisWeek;
+  } else if (currentPeriod === 'month') {
+    periodKeys = [thisMonth];
+    periodLabel = 'This Month (' + thisMonth + ')';
+    routinePeriodLabel = thisMonth;
+  } else if (currentPeriod === '6month') {
+    periodKeys = [thisSixMonth];
+    periodLabel = '6-Monthly (' + thisSixMonth + ')';
+    routinePeriodLabel = thisSixMonth;
+  }
+
+  document.getElementById('heatmapPeriodLabel').textContent = periodLabel;
+  document.getElementById('routineTablePeriod').textContent = routinePeriodLabel;
+  document.getElementById('detailPeriodBadge').textContent = routinePeriodLabel;
+  document.getElementById('stat-period-sub').textContent = periodLabel;
+
+  // ── FETCH ALL PERIOD SUBMISSIONS ──
+  let subsQuery = sb.from('submissions').select('station_code, routine_type, period_key, submitted_by_name, created_at');
+
+  if (currentPeriod === 'today') {
+    subsQuery = subsQuery.eq('period_key', today);
+  } else if (currentPeriod === 'week') {
+    subsQuery = subsQuery.eq('period_key', thisWeek);
+  } else if (currentPeriod === 'month') {
+    // Monthly period_key plus daily ones within the month
+    subsQuery = subsQuery.or(`period_key.eq.${thisMonth},period_key.like.${thisMonth}%`);
+  } else if (currentPeriod === '6month') {
+    subsQuery = subsQuery.or(`period_key.eq.${thisSixMonth},period_key.like.${thisSixMonth}%`);
+  }
+
+  const { data: subs } = await subsQuery;
+
+  // ── FETCH TODAY'S DAILY SUBS for heatmap (always) ──
+  const { data: todaySubs } = await sb.from('submissions')
+    .select('station_code, routine_type, period_key')
+    .in('routine_type', ['daily_facility', 'daily_equipment'])
+    .eq('period_key', today);
+
+  // ── FETCH PFE DATA (last 7 days) ──
+  const sevenDaysAgo = new Date(now);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  const sevenDaysAgoKey = getPeriodKey('daily', sevenDaysAgo);
+
+  const { data: pfeSubs } = await sb.from('submissions')
+    .select('station_code, period_key, data')
+    .eq('routine_type', 'daily_equipment')
+    .gte('period_key', sevenDaysAgoKey)
+    .order('period_key', { ascending: false });
+
+  // ── FETCH BASELINES ──
+  const { data: baselines } = await sb.from('baselines')
+    .select('station_code, routine_type, field_key, baseline_value')
+    .eq('routine_type', 'daily_equipment');
+
+  // ── FETCH COMPLIANCE TREND (last 30 days) ──
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const thirtyKey = getPeriodKey('daily', thirtyDaysAgo);
+
+  const { data: trendSubs } = await sb.from('submissions')
+    .select('station_code, period_key')
+    .in('routine_type', ['daily_facility', 'daily_equipment'])
+    .gte('period_key', thirtyKey)
+    .order('period_key', { ascending: true });
+
+  // ── BUILD UI ──
+  buildHeatmap(todaySubs || []);
+  buildSummaryStats(subs || [], todaySubs || [], pfeSubs || [], baselines || []);
+  buildRoutineTable(subs || []);
+  buildPFETable(pfeSubs || [], baselines || []);
+  buildDetailTable(subs || []);
+  buildComplianceChart(trendSubs || []);
+}
+
+// ── HEATMAP ──
+function buildHeatmap(todaySubs) {
+  const now = new Date();
+  const grid = document.getElementById('heatmapGrid');
+
+  // Count by station
+  const byStation = {};
+  STATIONS.forEach(s => byStation[s.code] = { facility: false, equipment: false });
+  (todaySubs || []).forEach(sub => {
+    if (byStation[sub.station_code]) {
+      if (sub.routine_type === 'daily_facility')  byStation[sub.station_code].facility  = true;
+      if (sub.routine_type === 'daily_equipment') byStation[sub.station_code].equipment = true;
+    }
+  });
+
+  grid.innerHTML = STATIONS.map(s => {
+    const working = isWorkDay(s, now);
+    const st = byStation[s.code];
+    const done = (st.facility ? 1 : 0) + (st.equipment ? 1 : 0);
+    let statusClass, pctText, labelText;
+
+    if (!working) {
+      statusClass = 'status-grey'; pctText = '—'; labelText = 'Off day';
+    } else if (done === 2) {
+      statusClass = 'status-green'; pctText = '✓'; labelText = 'Complete';
+    } else if (done === 1) {
+      statusClass = 'status-amber'; pctText = '½'; labelText = '1 of 2';
+    } else {
+      // Check if overdue (after 09:00 local — approximate using UTC+offset per station)
+      const hour = now.getUTCHours();
+      statusClass = hour >= 7 ? 'status-red' : 'status-grey';
+      pctText = '0'; labelText = hour >= 7 ? 'Overdue' : 'Pending';
+    }
+
+    return `
+      <div class="heat-card ${statusClass}" onclick="showStationModal('${s.code}')">
+        <div class="heat-flag">${s.flag}</div>
+        <div class="heat-code">${s.code}</div>
+        <div class="heat-pct">${pctText}</div>
+        <div class="heat-label">${labelText}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── SUMMARY STATS ──
+function buildSummaryStats(subs, todaySubs, pfeSubs, baselines) {
+  const now = new Date();
+
+  // Daily compliance today
+  const workingToday = STATIONS.filter(s => isWorkDay(s, now));
+  const byStation = {};
+  STATIONS.forEach(s => byStation[s.code] = 0);
+  (todaySubs || []).forEach(sub => { if (byStation[sub.station_code] !== undefined) byStation[sub.station_code]++; });
+  let complete = 0;
+  workingToday.forEach(s => { if (byStation[s.code] >= 2) complete++; });
+  const dailyPct = workingToday.length > 0 ? Math.round((complete / workingToday.length) * 100) : 0;
+  document.getElementById('stat-daily').textContent = dailyPct + '%';
+  document.getElementById('stat-stations').textContent = `${complete}/${workingToday.length}`;
+
+  // Overdue
+  const hour = now.getUTCHours();
+  const overdue = workingToday.filter(s => byStation[s.code] < 2 && hour >= 7).length;
+  document.getElementById('stat-overdue').textContent = overdue;
+
+  // PFE deviations
+  const deviations = countPFEDeviations(pfeSubs, baselines);
+  document.getElementById('stat-pfe').textContent = deviations;
+
+  // Period completion
+  let periodPct = '—';
+  if (currentPeriod === 'today') {
+    periodPct = dailyPct + '%';
+  } else if (currentPeriod === 'month') {
+    const monthKey = getPeriodKey('monthly');
+    const monthlyTypes = ['daily_facility','daily_equipment','monthly','monthly_pfe'];
+    const monthSubs = (subs || []).filter(s => monthlyTypes.includes(s.routine_type));
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
+    let expected = 0;
+    STATIONS.forEach(s => expected += workDaysInMonth(s, currentYear, currentMonth) * 2);
+    expected += STATIONS.length * 2; // monthly + monthly_pfe
+    periodPct = expected > 0 ? Math.min(100, Math.round((monthSubs.length / expected) * 100)) + '%' : '—';
+  } else {
+    const total = (subs || []).length;
+    periodPct = total + ' submissions';
+  }
+  document.getElementById('stat-period').textContent = periodPct;
+
+  // PFE alert banner
+  buildPFEAlertBanner(pfeSubs, baselines);
+}
+
+function countPFEDeviations(pfeSubs, baselines) {
+  const blMap = {};
+  (baselines || []).forEach(b => { blMap[`${b.station_code}:${b.field_key}`] = b.baseline_value; });
+  let count = 0;
+  (pfeSubs || []).forEach(sub => {
+    ['pfe_v_pu1','pfe_v_pu2','pfe_i_pu1','pfe_i_pu2'].forEach(field => {
+      const key = `${sub.station_code}:${field}`;
+      const bl = blMap[key];
+      const val = parseFloat(sub.data?.[field]);
+      if (bl && !isNaN(val) && bl !== 0) {
+        const dev = Math.abs((val - bl) / bl);
+        if (dev > 0.005) count++; // >0.5%
+      }
+    });
+  });
+  return count;
+}
+
+// ── PFE ALERT BANNER ──
+function buildPFEAlertBanner(pfeSubs, baselines) {
+  const blMap = {};
+  (baselines || []).forEach(b => { blMap[`${b.station_code}:${b.field_key}`] = b.baseline_value; });
+
+  const alerts = [];
+  const seen = new Set();
+
+  (pfeSubs || []).forEach(sub => {
+    const station = STATIONS.find(s => s.code === sub.station_code);
+    ['pfe_v_pu1','pfe_v_pu2','pfe_i_pu1','pfe_i_pu2'].forEach(field => {
+      const key = `${sub.station_code}:${field}`;
+      if (seen.has(key)) return;
+      const bl = blMap[key];
+      const val = parseFloat(sub.data?.[field]);
+      if (bl && !isNaN(val) && bl !== 0) {
+        const dev = Math.abs((val - bl) / bl);
+        if (dev > 0.005) {
+          seen.add(key);
+          const fieldLabel = { pfe_v_pu1:'Voltage PU1', pfe_v_pu2:'Voltage PU2', pfe_i_pu1:'Current PU1', pfe_i_pu2:'Current PU2' }[field];
+          alerts.push(`${station?.flag || ''} <strong>${sub.station_code}</strong> — ${fieldLabel}: ${val} vs baseline ${bl} (${(dev*100).toFixed(1)}% deviation) — ${sub.period_key}`);
+        }
+      }
+    });
+  });
+
+  const banner = document.getElementById('pfeAlertBanner');
+  const list = document.getElementById('pfeAlertList');
+
+  if (alerts.length > 0) {
+    list.innerHTML = alerts.map(a => `<div class="alert-item">⚡ <span>${a}</span></div>`).join('');
+    banner.classList.add('active');
+    document.getElementById('stat-pfe').style.color = 'var(--red)';
+  } else {
+    banner.classList.remove('active');
+  }
+}
+
+// ── ROUTINE TABLE ──
+function buildRoutineTable(subs) {
+  const now = new Date();
+  const tbody = document.getElementById('routineTableBody');
+
+  const rows = ROUTINE_TYPES.map(rt => {
+    const periodKey = getPeriodKey(rt.frequency);
+    const matching = (subs || []).filter(s => s.routine_type === rt.key);
+
+    // Expected submissions based on frequency and period
+    let expected = 0;
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
+
+    if (currentPeriod === 'today' && rt.frequency === 'daily') {
+      expected = STATIONS.filter(s => isWorkDay(s, now)).length;
+    } else if (currentPeriod === 'week' && rt.frequency === 'weekly') {
+      expected = STATIONS.length;
+    } else if (currentPeriod === 'month' && (rt.frequency === 'monthly')) {
+      expected = STATIONS.length;
+    } else if (currentPeriod === 'month' && rt.frequency === 'daily') {
+      let daysPassed = now.getDate();
+      let exp = 0;
+      STATIONS.forEach(s => {
+        for (let d = 1; d <= daysPassed; d++) {
+          const dow = new Date(currentYear, currentMonth-1, d).getDay();
+          if (s.workDays.includes(dow)) exp++;
+        }
+      });
+      expected = exp;
+    } else if (currentPeriod === '6month' && rt.frequency === 'six_monthly') {
+      expected = STATIONS.length;
+    } else if (currentPeriod === '6month' && rt.frequency === 'daily') {
+      const monthsInHalf = 6;
+      STATIONS.forEach(s => {
+        for (let mo = 1; mo <= monthsInHalf; mo++) {
+          expected += workDaysInMonth(s, currentYear, mo);
+        }
+      });
+    } else {
+      expected = '—';
+    }
+
+    const submitted = matching.length;
+    const rate = (typeof expected === 'number' && expected > 0) ? Math.min(100, Math.round((submitted / expected) * 100)) : null;
+    const rateText = rate !== null ? rate + '%' : '—';
+    const pillClass = rate === null ? 'pill-grey' : rate >= 100 ? 'pill-green' : rate >= 60 ? 'pill-amber' : 'pill-red';
+    const statusText = rate === null ? 'N/A' : rate >= 100 ? 'Complete' : rate >= 60 ? 'Partial' : 'Overdue';
+
+    return `<tr>
+      <td style="font-weight:600;color:var(--text)">${rt.label}</td>
+      <td><span class="pill pill-blue">${rt.frequency.replace('_',' ')}</span></td>
+      <td style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--teal)">${submitted}</td>
+      <td style="color:var(--muted)">${typeof expected === 'number' ? expected : expected}</td>
+      <td style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700">${rateText}</td>
+      <td><span class="pill ${pillClass}">${statusText}</span></td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = rows.join('');
+}
+
+// ── PFE TABLE ──
+function buildPFETable(pfeSubs, baselines) {
+  const blMap = {};
+  (baselines || []).forEach(b => { blMap[`${b.station_code}:${b.field_key}`] = b.baseline_value; });
+
+  const tbody = document.getElementById('pfeTableBody');
+
+  if (!pfeSubs || pfeSubs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:20px;">No PFE data in last 7 days</td></tr>';
+    return;
+  }
+
+  const rows = pfeSubs.slice(0, 30).map(sub => {
+    const station = STATIONS.find(s => s.code === sub.station_code);
+
+    function devCell(field) {
+      const key = `${sub.station_code}:${field}`;
+      const bl = blMap[key];
+      const val = parseFloat(sub.data?.[field]);
+      if (!bl || isNaN(val)) return '<td><span class="deviation-badge deviation-na">—</span></td>';
+      const dev = Math.abs((val - bl) / bl);
+      const devPct = (dev * 100).toFixed(2) + '%';
+      if (dev > 0.005) return `<td><span class="deviation-badge deviation-alert">⚠ ${devPct}</span></td>`;
+      if (dev > 0.002) return `<td><span class="deviation-badge deviation-warn">△ ${devPct}</span></td>`;
+      return `<td><span class="deviation-badge deviation-ok">✓ ${devPct}</span></td>`;
+    }
+
+    const vPU1 = sub.data?.pfe_v_pu1 || '—';
+    const vPU2 = sub.data?.pfe_v_pu2 || '—';
+    const iPU1 = sub.data?.pfe_i_pu1 || '—';
+    const iPU2 = sub.data?.pfe_i_pu2 || '—';
+
+    // Overall status
+    const fields = ['pfe_v_pu1','pfe_v_pu2','pfe_i_pu1','pfe_i_pu2'];
+    let hasAlert = false, hasWarn = false;
+    fields.forEach(field => {
+      const key = `${sub.station_code}:${field}`;
+      const bl = blMap[key];
+      const val = parseFloat(sub.data?.[field]);
+      if (bl && !isNaN(val)) {
+        const dev = Math.abs((val - bl) / bl);
+        if (dev > 0.005) hasAlert = true;
+        else if (dev > 0.002) hasWarn = true;
+      }
+    });
+    const overallPill = hasAlert ? '<span class="pill pill-red">Alert</span>' : hasWarn ? '<span class="pill pill-amber">Warning</span>' : '<span class="pill pill-green">Normal</span>';
+
+    return `<tr>
+      <td>${station?.flag || ''} <strong>${sub.station_code}</strong></td>
+      <td style="font-family:monospace;font-size:12px;color:var(--muted)">${sub.period_key}</td>
+      <td style="font-weight:600">${vPU1}</td>
+      <td style="font-weight:600">${vPU2}</td>
+      <td style="font-weight:600">${iPU1}</td>
+      <td style="font-weight:600">${iPU2}</td>
+      ${devCell('pfe_v_pu1')}
+      ${devCell('pfe_i_pu1')}
+      <td>${overallPill}</td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = rows.join('');
+}
+
+// ── DETAIL TABLE ──
+function buildDetailTable(subs) {
+  const now = new Date();
+  const tbody = document.getElementById('detailTableBody');
+
+  const rows = STATIONS.map(station => {
+    const stSubs = (subs || []).filter(s => s.station_code === station.code);
+    const byType = {};
+    ROUTINE_TYPES.forEach(rt => { byType[rt.key] = stSubs.filter(s => s.routine_type === rt.key).length; });
+
+    function cell(count, routineKey) {
+      const rt = ROUTINE_TYPES.find(r => r.key === routineKey);
+      if (!rt) return '<td>—</td>';
+      // For daily on today view, expected is 1 per working day
+      let expected = 0;
+      if (currentPeriod === 'today' && rt.frequency === 'daily') {
+        expected = isWorkDay(station, now) ? 1 : 0;
+      } else if (currentPeriod === 'month' && rt.frequency === 'daily') {
+        for (let d = 1; d <= now.getDate(); d++) {
+          const dow = new Date(now.getFullYear(), now.getMonth(), d).getDay();
+          if (station.workDays.includes(dow)) expected++;
+        }
+      } else if (['monthly','monthly_pfe'].includes(routineKey) && currentPeriod === 'month') {
+        expected = 1;
+      } else if (routineKey === 'six_monthly' && currentPeriod === '6month') {
+        expected = 1;
+      } else if (routineKey === 'weekly' && currentPeriod === 'week') {
+        expected = isWorkDay(station, now) ? 1 : 0;
+      }
+
+      const done = count > 0;
+      if (expected === 0) return `<td><span class="pill pill-grey">N/A</span></td>`;
+      if (done) return `<td><span class="pill pill-green">✓ ${count}</span></td>`;
+      return `<td><span class="pill pill-red">✗ 0</span></td>`;
+    }
+
+    const working = isWorkDay(station, now);
+    const totalSubmitted = stSubs.length;
+    const overallClass = totalSubmitted > 0 ? 'pill-green' : (!working ? 'pill-grey' : 'pill-red');
+    const overallLabel = totalSubmitted > 0 ? `${totalSubmitted} subs` : (!working ? 'Off day' : 'None');
+
+    return `<tr>
+      <td>${station.flag} <strong>${station.code}</strong> ${station.name}</td>
+      <td style="color:var(--muted);font-size:12px">${station.country}</td>
+      ${cell(byType['daily_facility'],  'daily_facility')}
+      ${cell(byType['daily_equipment'], 'daily_equipment')}
+      ${cell(byType['weekly'],          'weekly')}
+      ${cell(byType['monthly'],         'monthly')}
+      ${cell(byType['monthly_pfe'],     'monthly_pfe')}
+      ${cell(byType['six_monthly'],     'six_monthly')}
+      <td><span class="pill ${overallClass}">${overallLabel}</span></td>
+    </tr>`;
+  });
+
+  tbody.innerHTML = rows.join('');
+}
+
+// ── COMPLIANCE TREND CHART ──
+function buildComplianceChart(trendSubs) {
+  // Build day-by-day compliance for last 30 days
+  const now = new Date();
+  const labels = [];
+  const data = [];
+
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const key = getPeriodKey('daily', d);
+    const dayLabel = d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
+    labels.push(dayLabel);
+
+    const workingStations = STATIONS.filter(s => isWorkDay(s, d));
+    if (workingStations.length === 0) { data.push(null); continue; }
+
+    const daySubs = (trendSubs || []).filter(s => s.period_key === key);
+    const byStation = {};
+    workingStations.forEach(s => byStation[s.code] = 0);
+    daySubs.forEach(sub => { if (byStation[sub.station_code] !== undefined) byStation[sub.station_code]++; });
+
+    let complete = 0;
+    workingStations.forEach(s => { if (byStation[s.code] >= 2) complete++; });
+    data.push(Math.round((complete / workingStations.length) * 100));
+  }
+
+  const ctx = document.getElementById('complianceChart').getContext('2d');
+  if (compChart) compChart.destroy();
+
+  compChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Daily Compliance %',
+        data,
+        borderColor: '#0077a8',
+        backgroundColor: 'rgba(0,119,168,0.08)',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: '#0077a8',
+        tension: 0.3,
+        fill: true,
+        spanGaps: true,
+      }, {
+        label: '100% Target',
+        data: labels.map(() => 100),
+        borderColor: '#059669',
+        borderDash: [6,3],
+        borderWidth: 1,
+        pointRadius: 0,
+        fill: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.datasetIndex === 0 ? `Compliance: ${ctx.parsed.y ?? 'N/A'}%` : '100% target'
+          }
+        }
+      },
+      scales: {
+        y: {
+          min: 0, max: 100,
+          ticks: { callback: v => v + '%', font: { size: 10 } },
+          grid: { color: 'rgba(0,0,0,0.05)' }
+        },
+        x: {
+          ticks: { font: { size: 9 }, maxRotation: 45 },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
+
+// ── STATION MODAL ──
+async function showStationModal(code) {
+  const station = STATIONS.find(s => s.code === code);
+  document.getElementById('modalFlag').textContent = station.flag;
+  document.getElementById('modalTitle').textContent = `${code} — ${station.name}`;
+  document.getElementById('stationModal').classList.add('open');
+  document.getElementById('modalContent').innerHTML = '<div class="loading-state">⏳ Loading station detail…</div>';
+
+  const now = new Date();
+  const periodKeys = ROUTINE_TYPES.map(rt => getPeriodKey(rt.frequency));
+  const uniqueKeys = [...new Set(periodKeys)];
+
+  const { data: stSubs } = await sb.from('submissions')
+    .select('routine_type, period_key, submitted_by_name, created_at')
+    .eq('station_code', code)
+    .in('period_key', uniqueKeys)
+    .order('created_at', { ascending: false });
+
+  const byType = {};
+  ROUTINE_TYPES.forEach(rt => { byType[rt.key] = (stSubs || []).find(s => s.routine_type === rt.key); });
+
+  const items = ROUTINE_TYPES.map(rt => {
+    const sub = byType[rt.key];
+    const expected = getPeriodKey(rt.frequency);
+    const statusHtml = sub
+      ? `<div class="routine-status-val" style="color:var(--green)">✓ Done</div><div style="font-size:10px;color:var(--muted);margin-top:2px">${sub.submitted_by_name}<br>${new Date(sub.created_at).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>`
+      : `<div class="routine-status-val" style="color:var(--red)">✗ Not submitted</div><div style="font-size:10px;color:var(--muted);margin-top:2px">Period: ${expected}</div>`;
+    return `<div class="routine-status-item"><div class="routine-status-name">${rt.label}</div>${statusHtml}</div>`;
+  }).join('');
+
+  document.getElementById('modalContent').innerHTML = `
+    <div style="margin-bottom:16px;font-size:12px;color:var(--muted)">
+      ${station.country} · Working days: ${station.workDays.includes(0)?'Sun':''}${station.workDays.includes(1)?'Mon':''}${station.workDays.includes(2)?'Tue':''}${station.workDays.includes(3)?'Wed':''}${station.workDays.includes(4)?'Thu':''}${station.workDays.includes(5)?'Fri':''}${station.workDays.includes(6)?'Sat':''} – Fri
+    </div>
+    <div class="routine-status-grid">${items}</div>
+  `;
+}
+
+function closeModal() { document.getElementById('stationModal').classList.remove('open'); }
+document.getElementById('stationModal').addEventListener('click', e => { if (e.target === document.getElementById('stationModal')) closeModal(); });
+
+// ── INIT ──
+init();
+</script>
+</body>
+</html>
