@@ -577,6 +577,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ─── ADMIN LIST ───
+const NOC_READONLY = ['eassynoc@telkom.co.za'];
 const ADMIN_WHITELIST = {
   'MRN': 'assad.comorescables@outlook.com',
   'TLR': 'johary.ramboa@telma.mg',
@@ -587,7 +588,7 @@ const ADMIN_WHITELIST = {
   'MNZ': 'waynee@openserve.co.za',
   'MPT': 'nhiuane@tmcel.mz',
   'DES': 'omar.said@yas.co.tz',
-  'SUPER': 'verne.steyn@wiocc.net'
+  'SUPER': ['verne.steyn@wiocc.net', 'malusi.zuma@wiocc.net', 'tajoedien.mohamed@vodacom.co.za', 'greendc1@telkom.co.za']
 };
 
 // ─── MASTER TOOL LIST (109 items from EASSy template) ───

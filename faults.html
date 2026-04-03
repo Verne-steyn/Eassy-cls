@@ -168,7 +168,8 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-
 const SUPABASE_URL='https://wpblebjftxcdfrwwguti.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmxlYmpmdHhjZGZyd3dndXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Njg3NTAsImV4cCI6MjA4OTU0NDc1MH0.oaBljcLPFa3JPLp_e-2FgCcylwAOPAdHpkzGctOwfo0';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const AW={'MRN':'assad.comorescables@outlook.com','TLR':'johary.ramboa@telma.mg','DBT':'farah.abdi@djibtel.dj','PSD':'abdelhameeda@sudatel.sd','MGD':'girde@dalkomsomalia.com','MBS':'totieno@telkom.co.ke','MNZ':'waynee@openserve.co.za','MPT':'nhiuane@tmcel.mz','DES':'omar.said@yas.co.tz','SUPER':'verne.steyn@wiocc.net'};
+const NOC_READONLY=['eassynoc@telkom.co.za'];
+const AW={'MRN':'assad.comorescables@outlook.com','TLR':'johary.ramboa@telma.mg','DBT':'farah.abdi@djibtel.dj','PSD':'abdelhameeda@sudatel.sd','MGD':'girde@dalkomsomalia.com','MBS':'totieno@telkom.co.ke','MNZ':'waynee@openserve.co.za','MPT':'nhiuane@tmcel.mz','DES':'omar.said@yas.co.tz','SUPER':['verne.steyn@wiocc.net','malusi.zuma@wiocc.net','tajoedien.mohamed@vodacom.co.za','greendc1@telkom.co.za']};
 const FLAGS={MNZ:'🇿🇦',MPT:'🇲🇿',DES:'🇹🇿',MBS:'🇰🇪',MGD:'🇸🇴',DBT:'🇩🇯',PSD:'🇸🇩',TLR:'🇲🇬',MRN:'🇰🇲'};
 // SLA hours per priority (from manual)
 const SLA={P1:4,P2:4,P3:8,P4:24};
@@ -198,8 +199,8 @@ async function loadFaults(){
   const p1=all.filter(f=>f.priority==='P1'&&f.status!=='closed').length;
   const p2=all.filter(f=>f.priority==='P2'&&f.status!=='closed').length;
   const closed=all.filter(f=>f.status==='closed').length;
-  const canCreate=Object.values(AW).includes(curUser.email);
-  const isSup=curUser.email===AW['SUPER'];
+  const canCreate=[...Object.values(AW).flat()].includes(curUser.email);
+  const isSup=AW['SUPER'].includes(curUser.email);
 
   area.innerHTML=`
     <div class="stats-strip">
@@ -300,7 +301,7 @@ async function openFaultDetail(id){
     sb.from('fault_updates').select('*').eq('fault_id',id).order('created_at',{ascending:true})
   ]);
   if(!fault){document.getElementById('faultModalContent').innerHTML='<p>Not found.</p>';return;}
-  const canUpdate=curUser.email===AW[fault.station_code]||curUser.email===AW['SUPER'];
+  const canUpdate=curUser.email===AW[fault.station_code]||AW['SUPER'].includes(curUser.email);
   const pbc={'P1':'pb-p1','P2':'pb-p2','P3':'pb-p3','P4':'pb-p4'};
   document.getElementById('faultModalContent').innerHTML=`
     <div class="modal-title" style="display:flex;align-items:center;gap:10px;">

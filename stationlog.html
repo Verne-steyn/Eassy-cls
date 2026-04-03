@@ -186,7 +186,8 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-
 const SUPABASE_URL='https://wpblebjftxcdfrwwguti.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmxlYmpmdHhjZGZyd3dndXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Njg3NTAsImV4cCI6MjA4OTU0NDc1MH0.oaBljcLPFa3JPLp_e-2FgCcylwAOPAdHpkzGctOwfo0';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const AW={'MRN':'assad.comorescables@outlook.com','TLR':'johary.ramboa@telma.mg','DBT':'farah.abdi@djibtel.dj','PSD':'abdelhameeda@sudatel.sd','MGD':'girde@dalkomsomalia.com','MBS':'totieno@telkom.co.ke','MNZ':'waynee@openserve.co.za','MPT':'nhiuane@tmcel.mz','DES':'omar.said@yas.co.tz','SUPER':'verne.steyn@wiocc.net'};
+const NOC_READONLY=['eassynoc@telkom.co.za'];
+const AW={'MRN':'assad.comorescables@outlook.com','TLR':'johary.ramboa@telma.mg','DBT':'farah.abdi@djibtel.dj','PSD':'abdelhameeda@sudatel.sd','MGD':'girde@dalkomsomalia.com','MBS':'totieno@telkom.co.ke','MNZ':'waynee@openserve.co.za','MPT':'nhiuane@tmcel.mz','DES':'omar.said@yas.co.tz','SUPER':['verne.steyn@wiocc.net','malusi.zuma@wiocc.net','tajoedien.mohamed@vodacom.co.za','greendc1@telkom.co.za']};
 const FLAGS={MNZ:'🇿🇦',MPT:'🇲🇿',DES:'🇹🇿',MBS:'🇰🇪',MGD:'🇸🇴',DBT:'🇩🇯',PSD:'🇸🇩',TLR:'🇲🇬',MRN:'🇰🇲'};
 const NAMES={MNZ:'Mtunzini',MPT:'Maputo',DES:'Dar es Salaam',MBS:'Mombasa',MGD:'Mogadishu',DBT:'Djibouti',PSD:'Port Sudan',TLR:'Toliary',MRN:'Moroni'};
 const TC={general:{icon:'📋',label:'General',bc:'badge-general',dc:'dot-general'},alarm:{icon:'🔔',label:'Alarm',bc:'badge-alarm',dc:'dot-alarm'},fault:{icon:'⚠️',label:'Fault',bc:'badge-fault',dc:'dot-fault'},maintenance:{icon:'🔧',label:'Maintenance',bc:'badge-maintenance',dc:'dot-maintenance'},visitor:{icon:'👤',label:'Visitor/Access',bc:'badge-visitor',dc:'dot-visitor'},handover:{icon:'🔄',label:'Shift Handover',bc:'badge-handover',dc:'dot-handover'},security:{icon:'🔒',label:'Security',bc:'badge-security',dc:'dot-security'},power:{icon:'⚡',label:'Power/PFE',bc:'badge-power',dc:'dot-alarm'}};
@@ -197,7 +198,7 @@ async function doLogin(){const e=document.getElementById('loginEmail').value.tri
 async function doLogout(){await sb.auth.signOut();location.reload();}
 async function init(){const{data:{session}}=await sb.auth.getSession();if(session){curUser=session.user;await loadProfile();showApp();}sb.auth.onAuthStateChange(async(ev,s)=>{if(s&&!curUser){curUser=s.user;await loadProfile();showApp();}});}
 async function loadProfile(){const{data}=await sb.from('profiles').select('*').eq('id',curUser.id).single();userProfile=data;}
-function showApp(){document.getElementById('authOverlay').style.display='none';document.getElementById('mainContent').style.display='block';document.getElementById('loginArea').style.display='flex';document.getElementById('userPill').textContent=userProfile?.full_name||curUser.email;const sup=curUser.email===AW['SUPER'];if(userProfile?.station_code&&!sup)selectStation(userProfile.station_code);}
+function showApp(){document.getElementById('authOverlay').style.display='none';document.getElementById('mainContent').style.display='block';document.getElementById('loginArea').style.display='flex';document.getElementById('userPill').textContent=userProfile?.full_name||curUser.email;const sup=AW['SUPER'].includes(curUser.email);if(userProfile?.station_code&&!sup)selectStation(userProfile.station_code);}
 function selectStation(c){curStation=c;offset=0;document.querySelectorAll('.station-chip').forEach(x=>x.classList.toggle('active',x.textContent.includes(c)));loadLog();}
 function escH(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
@@ -205,7 +206,7 @@ async function loadLog(){
   if(!curStation)return;
   const el=document.getElementById('stationContent');
   el.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">⏳ Loading…</div>';
-  const canWrite=curUser.email===AW[curStation]||curUser.email===AW['SUPER'];
+  const canWrite=curUser.email===AW[curStation]||AW['SUPER'].includes(curUser.email);
   const today=new Date().toISOString().split('T')[0];
   const mStart=today.substring(0,7)+'-01';
   const[{data:todayE},{data:monthE},{data:urgentE}]=await Promise.all([
