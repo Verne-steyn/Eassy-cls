@@ -529,13 +529,12 @@ const SUPABASE_URL = 'https://wpblebjftxcdfrwwguti.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmxlYmpmdHhjZGZyd3dndXRpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5Njg3NTAsImV4cCI6MjA4OTU0NDc1MH0.oaBljcLPFa3JPLp_e-2FgCcylwAOPAdHpkzGctOwfo0';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const NOC_READONLY = ['eassynoc@telkom.co.za'];
 const ADMIN_WHITELIST = {
   'MRN':'assad.comorescables@outlook.com','TLR':'johary.ramboa@telma.mg',
   'DBT':'farah.abdi@djibtel.dj','PSD':'abdelhameeda@sudatel.sd',
   'MGD':'girde@dalkomsomalia.com','MBS':'totieno@telkom.co.ke',
-  'MNZ':'waynee@openserve.co.za','MPT':'aamaral@tmcel.mz',
-  'DES':'omar.said@yas.co.tz','SUPER':['verne.steyn@wiocc.net','malusi.zuma@wiocc.net','tajoedien.mohamed@vodacom.co.za','greendc1@telkom.co.za']
+  'MNZ':'waynee@openserve.co.za','MPT':'nhiuane@tmcel.mz',
+  'DES':'omar.said@yas.co.tz','SUPER':'verne.steyn@wiocc.net'
 };
 
 const MASTER_EQUIP = [
@@ -594,12 +593,12 @@ function showAuth() { window.location.href = 'index.html'; }
 
 function isAdmin() {
   if (!currentUser) return false;
-  return ADMIN_WHITELIST.SUPER.includes(currentUser.email) || currentUser.email === ADMIN_WHITELIST[userProfile?.station_code];
+  return currentUser.email === ADMIN_WHITELIST.SUPER || currentUser.email === ADMIN_WHITELIST[userProfile?.station_code];
 }
 
 function canEdit() {
   if (!currentUser) return false;
-  if (ADMIN_WHITELIST.SUPER.includes(currentUser.email)) return true;
+  if (currentUser.email === ADMIN_WHITELIST.SUPER) return true;
   return userProfile?.station_code === currentStation;
 }
 
